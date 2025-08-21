@@ -1,0 +1,7 @@
+parameter,value,notes
+discount_rate,0.05,Diskonto tahunan untuk NPV
+value_per_DALY,50000000,Rp per DALY averted (nilai kemauan membayar)
+konversi_mmHg_to_risk_reduction,0.2,Per ↓10 mmHg SBP ~20% penurunan risiko CV (parameter contoh)
+coef_deltaHAZ_to_DALY5y,0.15,DALY averted dalam 5 th per +0.1 HAZ (parameter contoh)
+coef_deltaHAZ_to_earnings,0.09,Kenaikan penghasilan dewasa per +1 HAZ (9%)
+wage_reference,24000000,Upah tahunan referensi (Rp)

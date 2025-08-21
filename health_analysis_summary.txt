@@ -1,0 +1,19 @@
+VILLAGE HEALTH DIGITAL TWIN - ANALYSIS SUMMARY
+==================================================
+
+Total Villages Analyzed: 3
+Total Households: 10
+Total Adults: 10
+Total Children: 10
+
+RISK ASSESSMENT:
+- Warning: 2 villages
+- Critical: 1 villages
+
+KEY INSIGHTS:
+1. 🚨 CRITICAL: Dusun C require immediate intervention
+2. 📊 Village-wide stunting prevalence (69.4%) exceeds WHO emergency threshold (20%)
+3. 💔 Hypertension prevalence (80.6%) indicates high cardiovascular risk
+4. 💧 Water access issues in: Dusun A, Dusun B, Dusun C
+5. ✅ HTN program shows good effectiveness (12.7 mmHg avg reduction)
+6. ✅ Stunting program shows positive impact (0.33 HAZ improvement)

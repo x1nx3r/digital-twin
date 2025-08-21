@@ -1,0 +1,11 @@
+person_id,household_id,sex,usia,sistol,diastol,diagnosis_htn,diabetes_koin,perokok,BMI,eligible_screening_htn,offered_htn_program,uptake_htn_program,adherence_htn,intensitas_kontrol_bln,jenis_obat,biaya_obat_bln,biaya_screening,biaya_kontrol_tahunan,biaya_transport_tahunan,penurunan_sbp_mmHg_12m,kejadian_stroke_MI
+P001,HH001,M,58,155,96,1,0,1,27.5,1,1,1,0.75,1,ACEi,45000,30000,300000,150000,12,0
+P002,HH002,F,61,162,98,1,0,0,30.2,1,1,1,0.85,1,CCB,55000,30000,360000,120000,15,0
+P003,HH003,M,49,138,88,0,0,1,26.1,1,1,0,0,0,-,0,30000,0,0,0,0
+P004,HH004,F,52,171,104,1,1,0,32.5,1,1,1,0.6,1,Diuretik,30000,30000,300000,180000,10,0
+P005,HH005,M,45,146,92,1,0,1,28,1,1,1,0.7,1,ACEi,45000,30000,300000,90000,11,0
+P006,HH006,F,63,177,110,1,1,0,31.7,1,1,1,0.55,2,ACEi+Diuretik,75000,30000,420000,200000,18,1
+P007,HH007,M,54,160,100,1,0,1,29.4,1,0,0,0,0,-,0,30000,0,0,0,0
+P008,HH008,F,36,141,90,0,0,0,24.9,1,1,0,0,0,-,0,30000,0,0,0,0
+P009,HH009,M,67,165,102,1,0,1,27,1,1,1,0.8,1,CCB,55000,30000,360000,140000,14,0
+P010,HH010,F,59,159,97,1,0,0,26.8,1,1,1,0.65,1,Diuretik,30000,30000,300000,160000,9,0

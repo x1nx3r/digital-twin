@@ -1,0 +1,20 @@
+field,sheet,description
+household_id,HOUSEHOLDS,ID unik keluarga/KK
+dusun,HOUSEHOLDS,Nama dusun di desa
+pendapatan_bulanan,HOUSEHOLDS,Pendapatan per KK (Rp)
+air_bersih,HOUSEHOLDS,"Akses air bersih (1=Ya,0=Tidak)"
+jamban_sehat,HOUSEHOLDS,"Akses jamban sehat (1=Ya,0=Tidak)"
+jarak_ke_puskesmas_km,HOUSEHOLDS,Perkiraan jarak ke faskes (km)
+person_id,ADULTS_HTN,ID unik individu dewasa (≥30 th)
+sbp,ADULTS_HTN,Systolic BP (mmHg)
+dbp,ADULTS_HTN,Diastolic BP (mmHg)
+diagnosis_htn,ADULTS_HTN,Riwayat diagnosis hipertensi (1/0)
+adherence_htn,ADULTS_HTN,Kepatuhan terapi (0–1)
+penurunan_sbp_mmHg_12m,ADULTS_HTN,Penurunan SBP dalam 12 bln (mmHg)
+kejadian_stroke_MI,ADULTS_HTN,Kejadian stroke/MI (1/0)
+child_id,CHILDREN_STUNTING,ID unik anak <5 th
+usia_bulan,CHILDREN_STUNTING,Usia anak dalam bulan
+HAZ,CHILDREN_STUNTING,Height-for-Age Z-score baseline
+delta_HAZ_12m,CHILDREN_STUNTING,+/- perubahan HAZ dalam 12 bln
+biaya_*,COSTS_CATALOG / PROGRAM_LOG,Biaya program (Rp)
+discount_rate,PARAMETERS,Diskonto tahunan untuk NPV

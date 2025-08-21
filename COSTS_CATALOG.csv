@@ -1,0 +1,9 @@
+program,biaya_unit,unit_def
+screening_htn,30000,per screening sekali
+obat_htn,50000,per bulan per orang (rata-rata)
+kontrol_htn,300000,per tahun per orang (kunjungan & pemeriksaan)
+transport_htn,120000,per tahun per orang (rata-rata)
+PMT,45000,per paket per bulan per anak
+mikronutrien,20000,per bulan per anak
+WASH,15000,per bulan per keluarga (operasional)
+posyandu,10000,per kunjungan per anak

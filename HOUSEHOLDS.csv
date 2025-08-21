@@ -1,0 +1,11 @@
+household_id,dusun,pendapatan_bulanan,air_bersih,jamban_sehat,jarak_ke_puskesmas_km
+HH001,Dusun A,1200000,0,0,6.5
+HH002,Dusun A,900000,1,0,4.2
+HH003,Dusun A,1500000,1,1,2.1
+HH004,Dusun B,800000,0,0,7.8
+HH005,Dusun B,2000000,1,1,1.4
+HH006,Dusun B,1100000,1,0,3.9
+HH007,Dusun C,950000,0,0,8.7
+HH008,Dusun C,1750000,1,1,2.9
+HH009,Dusun C,1300000,1,0,5.1
+HH010,Dusun C,700000,0,0,9.3
