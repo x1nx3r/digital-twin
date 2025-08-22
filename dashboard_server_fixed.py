@@ -102,12 +102,20 @@ def safe_serialize_dict(data_dict):
     return serialized
 
 # Response models
-class HealthMetrics(BaseModel):
-    total_participants: int
-    program_participants: int
+class HypertensionMetrics(BaseModel):
+    total_adults: int
+    adults_on_treatment: int
     participation_rate: float
-    avg_outcome_improvement: float
-    total_program_cost: float
+    avg_bp_reduction: float
+    program_cost: float
+    cost_per_participant: float
+
+class StuntingMetrics(BaseModel):
+    total_children: int
+    children_on_program: int
+    participation_rate: float
+    avg_haz_improvement: float
+    program_cost: float
     cost_per_participant: float
 
 class TrendData(BaseModel):
@@ -115,156 +123,234 @@ class TrendData(BaseModel):
     values: List[float]
     metric_name: str
 
-class DashboardResponse(BaseModel):
-    summary_metrics: HealthMetrics
-    trends: List[TrendData]
-    distribution_data: Dict[str, Any]
+class SeparatedDashboardResponse(BaseModel):
+    hypertension_section: Dict[str, Any]
+    stunting_section: Dict[str, Any]
+    combined_metrics: Dict[str, Any]
     alerts: List[str]
+    time_info: Dict[str, Any]  # Added time information
 
 # =============================================================================
 # OVERALL DASHBOARD MODULE
 # =============================================================================
 
-@app.get("/dashboard/overall", response_model=DashboardResponse)
+@app.get("/dashboard/overall", response_model=SeparatedDashboardResponse)
 async def get_overall_dashboard(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
-    program_type: Optional[str] = Query(None, description="Filter by program type (htn/stunting)")
+    time_period: Optional[str] = Query("1", description="Time period in months (1, 3, or 12)")
 ):
     """
-    Get overall system-wide dashboard metrics
+    Get overall system-wide dashboard metrics with separated hypertension and stunting sections
     """
     try:
         adults_df = data_cache['adults'].copy()
         children_df = data_cache['children'].copy()
         program_log = data_cache['program_log'].copy()
         
-        # Apply date filters
-        if start_date:
-            start_dt = pd.to_datetime(start_date)
-            adults_df = adults_df[adults_df['date'] >= start_dt]
-            children_df = children_df[children_df['date'] >= start_dt]
-            program_log = program_log[program_log['tanggal'] >= start_dt]
+        # Parse time period
+        period_months = int(time_period) if time_period in ["1", "3", "12"] else 1
+        
+        # Calculate date range based on actual data dates, not current date
+        if not end_date:
+            # Use the latest date from the actual data
+            latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
+            latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
+            latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
             
-        if end_date:
+            # Use the latest date across all datasets
+            data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
+            end_date = data_end_date.strftime('%Y-%m-%d')
+            
+        if not start_date:
             end_dt = pd.to_datetime(end_date)
-            adults_df = adults_df[adults_df['date'] <= end_dt]
-            children_df = children_df[children_df['date'] <= end_dt]
-            program_log = program_log[program_log['tanggal'] <= end_dt]
+            start_dt = end_dt - timedelta(days=period_months * 30)  # Approximate month calculation
+            start_date = start_dt.strftime('%Y-%m-%d')
         
-        # Calculate summary metrics
-        if program_type == "htn" or program_type is None:
-            htn_total = adults_df['person_id'].nunique()
-            htn_participants = adults_df[adults_df['on_treatment'] == 1]['person_id'].nunique()
-            htn_participation_rate = htn_participants / htn_total if htn_total > 0 else 0
-            
-            # Calculate BP improvement
-            baseline_bp = adults_df[adults_df['month'] == 0].groupby('person_id')['sistol'].first()
-            latest_bp = adults_df.groupby('person_id')['sistol'].last()
-            bp_improvement = (baseline_bp - latest_bp).mean()
-            if pd.isna(bp_improvement):
-                bp_improvement = 0
+        # Apply date filters
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        
+        adults_df = adults_df[(adults_df['date'] >= start_dt) & (adults_df['date'] <= end_dt)]
+        children_df = children_df[(children_df['date'] >= start_dt) & (children_df['date'] <= end_dt)]
+        program_log = program_log[(program_log['tanggal'] >= start_dt) & (program_log['tanggal'] <= end_dt)]
+        
+        # ========== HYPERTENSION SECTION ==========
+        htn_total = adults_df['person_id'].nunique()
+        htn_participants = adults_df[adults_df['on_treatment'] == 1]['person_id'].nunique()
+        htn_participation_rate = htn_participants / htn_total if htn_total > 0 else 0
+        
+        # Calculate BP improvement
+        baseline_bp = adults_df[adults_df['month'] == 0].groupby('person_id')['sistol'].first()
+        latest_bp = adults_df.groupby('person_id')['sistol'].last()
+        bp_improvement = (baseline_bp - latest_bp).mean()
+        if pd.isna(bp_improvement):
+            bp_improvement = 0
 
-        if program_type == "stunting" or program_type is None:
-            stunting_total = children_df['child_id'].nunique()
-            stunting_participants = children_df[children_df['on_program'] == 1]['child_id'].nunique()
-            stunting_participation_rate = stunting_participants / stunting_total if stunting_total > 0 else 0
-            
-            # Calculate HAZ improvement
-            haz_improvement = children_df['haz_change_this_month'].mean()
-            if pd.isna(haz_improvement):
-                haz_improvement = 0
+        # HTN program costs
+        htn_program_log = program_log[program_log['program'].str.contains('htn|hypertension|tension', case=False, na=False)]
+        htn_total_cost = htn_program_log['biaya_riil'].sum()
+        htn_cost_per_participant = htn_total_cost / htn_participants if htn_participants > 0 else 0
         
-        # Combined metrics
-        if program_type is None:
-            total_participants = htn_total + stunting_total
-            program_participants = htn_participants + stunting_participants
-            participation_rate = program_participants / total_participants if total_participants > 0 else 0
-            avg_improvement = (bp_improvement + haz_improvement) / 2
-        elif program_type == "htn":
-            total_participants = htn_total
-            program_participants = htn_participants
-            participation_rate = htn_participation_rate
-            avg_improvement = bp_improvement
-        else:  # stunting
-            total_participants = stunting_total
-            program_participants = stunting_participants
-            participation_rate = stunting_participation_rate
-            avg_improvement = haz_improvement
+        # HTN age distribution (adults 18+)
+        htn_age_dist = {}
+        if len(adults_df) > 0:
+            # Adult-specific age bins (18-30, 31-45, 46-60, 61+)
+            age_bins = pd.cut(adults_df['age'], bins=[17, 30, 45, 60, 100], labels=['18-30', '31-45', '46-60', '61+'])
+            age_distribution = adults_df.groupby(age_bins)['person_id'].nunique()
+            htn_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
         
-        # Calculate costs
-        total_cost = program_log['biaya_riil'].sum()
-        cost_per_participant = total_cost / program_participants if program_participants > 0 else 0
+        # HTN trends
+        htn_trends = []
+        monthly_bp = adults_df.groupby(adults_df['date'].dt.to_period('M'))['sistol'].mean()
+        if len(monthly_bp) > 0:
+            htn_trends.append({
+                "dates": [str(d) for d in monthly_bp.index],
+                "values": [float(v) for v in monthly_bp.values],
+                "metric_name": "avg_blood_pressure"
+            })
         
-        summary_metrics = HealthMetrics(
-            total_participants=int(total_participants),
-            program_participants=int(program_participants),
-            participation_rate=float(round(participation_rate, 3)),
-            avg_outcome_improvement=float(round(avg_improvement, 2)),
-            total_program_cost=float(int(total_cost)),
-            cost_per_participant=float(int(cost_per_participant))
+        monthly_htn_participation = adults_df.groupby(adults_df['date'].dt.to_period('M'))['on_treatment'].mean()
+        if len(monthly_htn_participation) > 0:
+            htn_trends.append({
+                "dates": [str(d) for d in monthly_htn_participation.index],
+                "values": [float(v) for v in monthly_htn_participation.values],
+                "metric_name": "htn_participation_rate"
+            })
+        
+        hypertension_metrics = HypertensionMetrics(
+            total_adults=int(htn_total),
+            adults_on_treatment=int(htn_participants),
+            participation_rate=float(round(htn_participation_rate, 3)),
+            avg_bp_reduction=float(round(bp_improvement, 2)),
+            program_cost=float(int(htn_total_cost)),
+            cost_per_participant=float(int(htn_cost_per_participant))
         )
         
-        # Generate trend data
-        trends = []
+        # ========== STUNTING SECTION ==========
+        stunting_total = children_df['child_id'].nunique()
+        stunting_participants = children_df[children_df['on_program'] == 1]['child_id'].nunique()
+        stunting_participation_rate = stunting_participants / stunting_total if stunting_total > 0 else 0
         
-        # Monthly participation trend
-        monthly_participation = adults_df.groupby(adults_df['date'].dt.to_period('M'))['on_treatment'].mean()
-        if len(monthly_participation) > 0:
-            trends.append(TrendData(
-                dates=[str(d) for d in monthly_participation.index],
-                values=[float(v) for v in monthly_participation.values],
-                metric_name="participation_rate"
-            ))
+        # Calculate HAZ improvement
+        haz_improvement = children_df['haz_change_this_month'].mean()
+        if pd.isna(haz_improvement):
+            haz_improvement = 0
         
-        # Monthly cost trend
-        monthly_costs = program_log.groupby(program_log['tanggal'].dt.to_period('M'))['biaya_riil'].sum()
-        if len(monthly_costs) > 0:
-            trends.append(TrendData(
-                dates=[str(d) for d in monthly_costs.index],
-                values=[float(v) for v in monthly_costs.values],
-                metric_name="monthly_costs"
-            ))
+        # Stunting program costs
+        stunting_program_log = program_log[program_log['program'].str.contains('stunt|gizi|nutrition', case=False, na=False)]
+        stunting_total_cost = stunting_program_log['biaya_riil'].sum()
+        stunting_cost_per_participant = stunting_total_cost / stunting_participants if stunting_participants > 0 else 0
         
-        # Distribution data - FIXED to handle pandas Intervals
-        if len(adults_df) > 0:
-            age_bins = pd.cut(adults_df['age'], bins=5)
-            age_distribution = adults_df.groupby(age_bins)['person_id'].nunique()
-            
-            # Convert age distribution to serializable format
-            age_dist_serializable = {}
-            for interval, count in age_distribution.items():
-                age_range = f"{interval.left:.0f}-{interval.right:.0f}"
-                age_dist_serializable[age_range] = int(count)
-        else:
-            age_dist_serializable = {}
+        # Stunting age distribution (children 0-5 years)
+        stunting_age_dist = {}
+        if len(children_df) > 0:
+            # Child-specific age bins (0-6m, 6-12m, 1-2y, 2-3y, 3-5y)
+            age_bins = pd.cut(children_df['usia_bulan'], bins=[0, 6, 12, 24, 36, 60], labels=['0-6m', '6-12m', '1-2y', '2-3y', '3-5y'])
+            age_distribution = children_df.groupby(age_bins)['child_id'].nunique()
+            stunting_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
         
+        # Stunting trends
+        stunting_trends = []
+        monthly_haz = children_df.groupby(children_df['date'].dt.to_period('M'))['HAZ'].mean()
+        if len(monthly_haz) > 0:
+            stunting_trends.append({
+                "dates": [str(d) for d in monthly_haz.index],
+                "values": [float(v) for v in monthly_haz.values],
+                "metric_name": "avg_haz_score"
+            })
+        
+        monthly_stunting_participation = children_df.groupby(children_df['date'].dt.to_period('M'))['on_program'].mean()
+        if len(monthly_stunting_participation) > 0:
+            stunting_trends.append({
+                "dates": [str(d) for d in monthly_stunting_participation.index],
+                "values": [float(v) for v in monthly_stunting_participation.values],
+                "metric_name": "stunting_participation_rate"
+            })
+        
+        stunting_metrics = StuntingMetrics(
+            total_children=int(stunting_total),
+            children_on_program=int(stunting_participants),
+            participation_rate=float(round(stunting_participation_rate, 3)),
+            avg_haz_improvement=float(round(haz_improvement, 3)),
+            program_cost=float(int(stunting_total_cost)),
+            cost_per_participant=float(int(stunting_cost_per_participant))
+        )
+        
+        # ========== COMBINED METRICS ==========
+        total_program_cost = program_log['biaya_riil'].sum()
+        total_participants = htn_total + stunting_total
+        total_program_participants = htn_participants + stunting_participants
+        overall_participation_rate = total_program_participants / total_participants if total_participants > 0 else 0
+        
+        # Program distribution
         program_distribution = program_log['program'].value_counts().to_dict()
-        household_income_stats = data_cache['households']['pendapatan_rt'].describe().to_dict()
+        program_dist_clean = {str(k): int(v) for k, v in program_distribution.items()}
         
-        distribution_data = {
-            "age_distribution": age_dist_serializable,
-            "program_distribution": {str(k): int(v) for k, v in program_distribution.items()},
-            "household_income_distribution": {str(k): float(v) for k, v in household_income_stats.items()}
+        # Monthly cost trends for all programs
+        monthly_costs = program_log.groupby(program_log['tanggal'].dt.to_period('M'))['biaya_riil'].sum()
+        cost_trends = []
+        if len(monthly_costs) > 0:
+            cost_trends.append({
+                "dates": [str(d) for d in monthly_costs.index],
+                "values": [float(v) for v in monthly_costs.values],
+                "metric_name": "monthly_total_costs"
+            })
+        
+        combined_metrics = {
+            "total_participants": int(total_participants),
+            "total_program_participants": int(total_program_participants),
+            "overall_participation_rate": float(round(overall_participation_rate, 3)),
+            "total_program_cost": float(int(total_program_cost)),
+            "program_distribution": program_dist_clean,
+            "cost_trends": cost_trends
         }
         
-        # Safely serialize distribution data
-        distribution_data = safe_serialize_dict(distribution_data)
-        
-        # Generate alerts
+        # ========== ALERTS ==========
         alerts = []
-        if participation_rate < 0.5:
-            alerts.append("⚠️ Low participation rate detected")
-        if avg_improvement < 0:
-            alerts.append("🔴 Negative health outcomes trend")
-        if cost_per_participant > 500000:
-            alerts.append("💰 High cost per participant")
+        if htn_participation_rate < 0.5:
+            alerts.append("⚠️ Low hypertension program participation rate")
+        if stunting_participation_rate < 0.5:
+            alerts.append("⚠️ Low stunting program participation rate")
+        if bp_improvement < 0:
+            alerts.append("🔴 Blood pressure trends showing deterioration")
+        if haz_improvement < 0:
+            alerts.append("🔴 HAZ scores trends showing deterioration")
+        if htn_cost_per_participant > 300000:
+            alerts.append("💰 High cost per hypertension participant")
+        if stunting_cost_per_participant > 200000:
+            alerts.append("💰 High cost per stunting participant")
             
-        return DashboardResponse(
-            summary_metrics=summary_metrics,
-            trends=trends,
-            distribution_data=distribution_data,
-            alerts=alerts
+        return SeparatedDashboardResponse(
+            hypertension_section={
+                "metrics": hypertension_metrics.dict(),
+                "age_distribution": htn_age_dist,
+                "trends": htn_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(htn_total_cost)),
+                    "cost_per_participant": float(int(htn_cost_per_participant)),
+                    "cost_effectiveness": float(htn_cost_per_participant / abs(bp_improvement)) if bp_improvement != 0 else 0
+                }
+            },
+            stunting_section={
+                "metrics": stunting_metrics.dict(),
+                "age_distribution": stunting_age_dist,
+                "trends": stunting_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(stunting_total_cost)),
+                    "cost_per_participant": float(int(stunting_cost_per_participant)),
+                    "cost_effectiveness": float(stunting_cost_per_participant / abs(haz_improvement)) if haz_improvement != 0 else 0
+                }
+            },
+            combined_metrics=combined_metrics,
+            alerts=alerts,
+            time_info={
+                "period_months": period_months,
+                "start_date": start_date,
+                "end_date": end_date,
+                "current_date": end_date,  # Use data end date instead of system date
+                "period_label": f"{period_months} Month{'s' if period_months > 1 else ''}"
+            }
         )
         
     except Exception as e:
@@ -275,14 +361,15 @@ async def get_overall_dashboard(
 # PER-DUSUN DASHBOARD MODULE
 # =============================================================================
 
-@app.get("/dashboard/dusun/{dusun_id}", response_model=DashboardResponse)
+@app.get("/dashboard/dusun/{dusun_id}", response_model=SeparatedDashboardResponse)
 async def get_dusun_dashboard(
     dusun_id: str,
     start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None)
+    end_date: Optional[str] = Query(None),
+    time_period: Optional[str] = Query("1", description="Time period in months (1, 3, or 12)")
 ):
     """
-    Get dashboard metrics for a specific dusun (village area)
+    Get dashboard metrics for a specific dusun (village area) with separated hypertension and stunting sections
     """
     try:
         # For demo purposes, we'll simulate dusun filtering by household groups
@@ -325,29 +412,42 @@ async def get_dusun_dashboard(
             )
         ].copy()
         
-        # Apply date filters
-        if start_date:
-            start_dt = pd.to_datetime(start_date)
-            adults_df = adults_df[adults_df['date'] >= start_dt]
-            children_df = children_df[children_df['date'] >= start_dt]
-            program_log = program_log[program_log['tanggal'] >= start_dt]
+        # Parse time period and apply date filters
+        period_months = int(time_period) if time_period in ["1", "3", "12"] else 1
+        
+        # Calculate date range based on actual data dates, not current date
+        if not end_date:
+            # Use the latest date from the actual data
+            latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
+            latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
+            latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
             
-        if end_date:
+            # Use the latest date across all datasets
+            data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
+            end_date = data_end_date.strftime('%Y-%m-%d')
+            
+        if not start_date:
             end_dt = pd.to_datetime(end_date)
-            adults_df = adults_df[adults_df['date'] <= end_dt]
-            children_df = children_df[children_df['date'] <= end_dt]
-            program_log = program_log[program_log['tanggal'] <= end_dt]
+            start_dt = end_dt - timedelta(days=period_months * 30)
+            start_date = start_dt.strftime('%Y-%m-%d')
+        
+        # Apply date filters
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        
+        adults_df = adults_df[(adults_df['date'] >= start_dt) & (adults_df['date'] <= end_dt)]
+        children_df = children_df[(children_df['date'] >= start_dt) & (children_df['date'] <= end_dt)]
+        program_log = program_log[(program_log['tanggal'] >= start_dt) & (program_log['tanggal'] <= end_dt)]
         
         # Calculate dusun-specific metrics
         total_adults = adults_df['person_id'].nunique()
         total_children = children_df['child_id'].nunique()
-        total_participants = total_adults + total_children
         
         htn_participants = adults_df[adults_df['on_treatment'] == 1]['person_id'].nunique()
         stunting_participants = children_df[children_df['on_program'] == 1]['child_id'].nunique()
-        program_participants = htn_participants + stunting_participants
         
-        participation_rate = program_participants / total_participants if total_participants > 0 else 0
+        # ========== HYPERTENSION SECTION FOR DUSUN ==========
+        htn_participation_rate = htn_participants / total_adults if total_adults > 0 else 0
         
         # Health outcomes
         baseline_bp = adults_df[adults_df['month'] == 0].groupby('person_id')['sistol'].first()
@@ -356,74 +456,139 @@ async def get_dusun_dashboard(
         if pd.isna(bp_improvement):
             bp_improvement = 0
         
-        haz_improvement = children_df['haz_change_this_month'].mean()
-        if pd.isna(haz_improvement):
-            haz_improvement = 0
-            
-        avg_improvement = (bp_improvement + haz_improvement) / 2
+        # HTN costs for this dusun
+        htn_program_log = program_log[program_log['program'].str.contains('htn|hypertension|tension', case=False, na=False)]
+        htn_cost = htn_program_log['biaya_riil'].sum()
+        htn_cost_per_participant = htn_cost / htn_participants if htn_participants > 0 else 0
         
-        # Costs
-        total_cost = program_log['biaya_riil'].sum()
-        cost_per_participant = total_cost / program_participants if program_participants > 0 else 0
+        # HTN age distribution
+        htn_age_dist = {}
+        if len(adults_df) > 0:
+            age_bins = pd.cut(adults_df['age'], bins=[17, 30, 45, 60, 100], labels=['18-30', '31-45', '46-60', '61+'])
+            age_distribution = adults_df.groupby(age_bins)['person_id'].nunique()
+            htn_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
         
-        summary_metrics = HealthMetrics(
-            total_participants=int(total_participants),
-            program_participants=int(program_participants),
-            participation_rate=float(round(participation_rate, 3)),
-            avg_outcome_improvement=float(round(avg_improvement, 2)),
-            total_program_cost=float(int(total_cost)),
-            cost_per_participant=float(int(cost_per_participant))
-        )
-        
-        # Dusun-specific trends
-        trends = []
-        
-        # Weekly health outcome trends
+        # HTN trends
+        htn_trends = []
         if len(adults_df) > 0:
             weekly_bp = adults_df.groupby(adults_df['date'].dt.to_period('W'))['sistol'].mean()
             if len(weekly_bp) > 0:
-                trends.append(TrendData(
-                    dates=[str(d) for d in weekly_bp.index],
-                    values=[float(v) for v in weekly_bp.values],
-                    metric_name="avg_blood_pressure"
-                ))
+                htn_trends.append({
+                    "dates": [str(d) for d in weekly_bp.index],
+                    "values": [float(v) for v in weekly_bp.values],
+                    "metric_name": "avg_blood_pressure"
+                })
         
+        hypertension_metrics = HypertensionMetrics(
+            total_adults=int(total_adults),
+            adults_on_treatment=int(htn_participants),
+            participation_rate=float(round(htn_participation_rate, 3)),
+            avg_bp_reduction=float(round(bp_improvement, 2)),
+            program_cost=float(int(htn_cost)),
+            cost_per_participant=float(int(htn_cost_per_participant))
+        )
+        
+        # ========== STUNTING SECTION FOR DUSUN ==========
+        stunting_participation_rate = stunting_participants / total_children if total_children > 0 else 0
+        
+        haz_improvement = children_df['haz_change_this_month'].mean()
+        if pd.isna(haz_improvement):
+            haz_improvement = 0
+        
+        # Stunting costs for this dusun
+        stunting_program_log = program_log[program_log['program'].str.contains('stunt|gizi|nutrition', case=False, na=False)]
+        stunting_cost = stunting_program_log['biaya_riil'].sum()
+        stunting_cost_per_participant = stunting_cost / stunting_participants if stunting_participants > 0 else 0
+        
+        # Stunting age distribution
+        stunting_age_dist = {}
+        if len(children_df) > 0:
+            age_bins = pd.cut(children_df['usia_bulan'], bins=[0, 6, 12, 24, 36, 60], labels=['0-6m', '6-12m', '1-2y', '2-3y', '3-5y'])
+            age_distribution = children_df.groupby(age_bins)['child_id'].nunique()
+            stunting_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
+        
+        # Stunting trends
+        stunting_trends = []
         if len(children_df) > 0:
             weekly_haz = children_df.groupby(children_df['date'].dt.to_period('W'))['HAZ'].mean()
             if len(weekly_haz) > 0:
-                trends.append(TrendData(
-                    dates=[str(d) for d in weekly_haz.index],
-                    values=[float(v) for v in weekly_haz.values],
-                    metric_name="avg_haz_score"
-                ))
+                stunting_trends.append({
+                    "dates": [str(d) for d in weekly_haz.index],
+                    "values": [float(v) for v in weekly_haz.values],
+                    "metric_name": "avg_haz_score"
+                })
         
-        # Distribution data
-        distribution_data = safe_serialize_dict({
+        stunting_metrics = StuntingMetrics(
+            total_children=int(total_children),
+            children_on_program=int(stunting_participants),
+            participation_rate=float(round(stunting_participation_rate, 3)),
+            avg_haz_improvement=float(round(haz_improvement, 3)),
+            program_cost=float(int(stunting_cost)),
+            cost_per_participant=float(int(stunting_cost_per_participant))
+        )
+        
+        # ========== COMBINED METRICS FOR DUSUN ==========
+        total_participants = total_adults + total_children
+        program_participants = htn_participants + stunting_participants
+        overall_participation_rate = program_participants / total_participants if total_participants > 0 else 0
+        total_cost = program_log['biaya_riil'].sum()
+        
+        program_distribution = {}
+        if len(program_log) > 0:
+            program_distribution = program_log['program'].value_counts().to_dict()
+            program_distribution = {str(k): int(v) for k, v in program_distribution.items()}
+        
+        combined_metrics = {
+            "total_participants": int(total_participants),
+            "total_program_participants": int(program_participants),
+            "overall_participation_rate": float(round(overall_participation_rate, 3)),
+            "total_program_cost": float(int(total_cost)),
             "household_count": len(dusun_households),
-            "age_group_distribution": {
-                "adults": int(total_adults),
-                "children": int(total_children)
-            },
-            "program_effectiveness": {
-                "htn_participants": int(htn_participants),
-                "stunting_participants": int(stunting_participants)
-            }
-        })
+            "program_distribution": program_distribution
+        }
         
         # Dusun-specific alerts
         alerts = []
         if len(dusun_households) < 5:
             alerts.append("📍 Small dusun - limited statistical power")
-        if participation_rate < 0.3:
-            alerts.append("⚠️ Very low participation in this dusun")
+        if htn_participation_rate < 0.3:
+            alerts.append("⚠️ Very low hypertension program participation in this dusun")
+        if stunting_participation_rate < 0.3:
+            alerts.append("⚠️ Very low stunting program participation in this dusun")
         if total_cost / len(dusun_households) > 200000:
             alerts.append("💰 High cost per household in this dusun")
             
-        return DashboardResponse(
-            summary_metrics=summary_metrics,
-            trends=trends,
-            distribution_data=distribution_data,
-            alerts=alerts
+        return SeparatedDashboardResponse(
+            hypertension_section={
+                "metrics": hypertension_metrics.dict(),
+                "age_distribution": htn_age_dist,
+                "trends": htn_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(htn_cost)),
+                    "cost_per_participant": float(int(htn_cost_per_participant)),
+                    "cost_effectiveness": float(htn_cost_per_participant / abs(bp_improvement)) if bp_improvement != 0 else 0
+                }
+            },
+            stunting_section={
+                "metrics": stunting_metrics.dict(),
+                "age_distribution": stunting_age_dist,
+                "trends": stunting_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(stunting_cost)),
+                    "cost_per_participant": float(int(stunting_cost_per_participant)),
+                    "cost_effectiveness": float(stunting_cost_per_participant / abs(haz_improvement)) if haz_improvement != 0 else 0
+                }
+            },
+            combined_metrics=combined_metrics,
+            alerts=alerts,
+            time_info={
+                "period_months": period_months,
+                "start_date": start_date,
+                "end_date": end_date,
+                "current_date": end_date,  # Use data end date instead of system date
+                "period_label": f"{period_months} Month{'s' if period_months > 1 else ''}",
+                "dusun_id": dusun_id
+            }
         )
         
     except Exception as e:
@@ -434,14 +599,15 @@ async def get_dusun_dashboard(
 # PER-HOUSEHOLD DASHBOARD MODULE
 # =============================================================================
 
-@app.get("/dashboard/household/{household_id}", response_model=DashboardResponse)
+@app.get("/dashboard/household/{household_id}", response_model=SeparatedDashboardResponse)
 async def get_household_dashboard(
     household_id: str,
     start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None)
+    end_date: Optional[str] = Query(None),
+    time_period: Optional[str] = Query("1", description="Time period in months (1, 3, or 12)")
 ):
     """
-    Get dashboard metrics for a specific household
+    Get dashboard metrics for a specific household with separated hypertension and stunting sections
     """
     try:
         # Get household info
@@ -460,29 +626,42 @@ async def get_household_dashboard(
             )
         ].copy()
         
-        # Apply date filters
-        if start_date:
-            start_dt = pd.to_datetime(start_date)
-            adults_df = adults_df[adults_df['date'] >= start_dt]
-            children_df = children_df[children_df['date'] >= start_dt]
-            program_log = program_log[program_log['tanggal'] >= start_dt]
+        # Parse time period and apply date filters
+        period_months = int(time_period) if time_period in ["1", "3", "12"] else 1
+        
+        # Calculate date range based on actual data dates, not current date
+        if not end_date:
+            # Use the latest date from the actual data
+            latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
+            latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
+            latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
             
-        if end_date:
+            # Use the latest date across all datasets
+            data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
+            end_date = data_end_date.strftime('%Y-%m-%d')
+            
+        if not start_date:
             end_dt = pd.to_datetime(end_date)
-            adults_df = adults_df[adults_df['date'] <= end_dt]
-            children_df = children_df[children_df['date'] <= end_dt]
-            program_log = program_log[program_log['tanggal'] <= end_dt]
+            start_dt = end_dt - timedelta(days=period_months * 30)
+            start_date = start_dt.strftime('%Y-%m-%d')
+        
+        # Apply date filters
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        
+        adults_df = adults_df[(adults_df['date'] >= start_dt) & (adults_df['date'] <= end_dt)]
+        children_df = children_df[(children_df['date'] >= start_dt) & (children_df['date'] <= end_dt)]
+        program_log = program_log[(program_log['tanggal'] >= start_dt) & (program_log['tanggal'] <= end_dt)]
         
         # Calculate household-specific metrics
         total_adults = adults_df['person_id'].nunique()
         total_children = children_df['child_id'].nunique()
-        total_members = total_adults + total_children
         
         htn_participants = adults_df[adults_df['on_treatment'] == 1]['person_id'].nunique()
         stunting_participants = children_df[children_df['on_program'] == 1]['child_id'].nunique()
-        program_participants = htn_participants + stunting_participants
         
-        participation_rate = program_participants / total_members if total_members > 0 else 0
+        # ========== HYPERTENSION SECTION FOR HOUSEHOLD ==========
+        htn_participation_rate = htn_participants / total_adults if total_adults > 0 else 0
         
         # Health outcomes for household members
         if not adults_df.empty:
@@ -493,62 +672,88 @@ async def get_household_dashboard(
                 bp_improvement = 0
         else:
             bp_improvement = 0
-            
+        
+        # HTN costs for this household
+        htn_program_log = program_log[program_log['program'].str.contains('htn|hypertension|tension', case=False, na=False)]
+        htn_cost = htn_program_log['biaya_riil'].sum()
+        htn_cost_per_participant = htn_cost / htn_participants if htn_participants > 0 else 0
+        
+        # HTN age distribution for household
+        htn_age_dist = {}
+        if len(adults_df) > 0:
+            age_bins = pd.cut(adults_df['age'], bins=[17, 30, 45, 60, 100], labels=['18-30', '31-45', '46-60', '61+'])
+            age_distribution = adults_df.groupby(age_bins)['person_id'].nunique()
+            htn_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
+        
+        # HTN trends for household
+        htn_trends = []
+        if not adults_df.empty:
+            daily_bp = adults_df.groupby('date')['sistol'].mean()
+            if len(daily_bp) > 0:
+                htn_trends.append({
+                    "dates": [d.strftime('%Y-%m-%d') for d in daily_bp.index],
+                    "values": [float(v) for v in daily_bp.values],
+                    "metric_name": "household_avg_bp"
+                })
+        
+        hypertension_metrics = HypertensionMetrics(
+            total_adults=int(total_adults),
+            adults_on_treatment=int(htn_participants),
+            participation_rate=float(round(htn_participation_rate, 3)),
+            avg_bp_reduction=float(round(bp_improvement, 2)),
+            program_cost=float(int(htn_cost)),
+            cost_per_participant=float(int(htn_cost_per_participant))
+        )
+        
+        # ========== STUNTING SECTION FOR HOUSEHOLD ==========
+        stunting_participation_rate = stunting_participants / total_children if total_children > 0 else 0
+        
         if not children_df.empty:
             haz_improvement = children_df['haz_change_this_month'].mean()
             if pd.isna(haz_improvement):
                 haz_improvement = 0
         else:
             haz_improvement = 0
-            
-        avg_improvement = (bp_improvement + haz_improvement) / 2 if (total_adults + total_children) > 0 else 0
         
-        # Household costs
-        total_cost = program_log['biaya_riil'].sum()
-        cost_per_participant = total_cost / program_participants if program_participants > 0 else 0
+        # Stunting costs for this household
+        stunting_program_log = program_log[program_log['program'].str.contains('stunt|gizi|nutrition', case=False, na=False)]
+        stunting_cost = stunting_program_log['biaya_riil'].sum()
+        stunting_cost_per_participant = stunting_cost / stunting_participants if stunting_participants > 0 else 0
         
-        summary_metrics = HealthMetrics(
-            total_participants=int(total_members),
-            program_participants=int(program_participants),
-            participation_rate=float(round(participation_rate, 3)),
-            avg_outcome_improvement=float(round(avg_improvement, 2)),
-            total_program_cost=float(int(total_cost)),
-            cost_per_participant=float(int(cost_per_participant))
-        )
+        # Stunting age distribution for household
+        stunting_age_dist = {}
+        if len(children_df) > 0:
+            age_bins = pd.cut(children_df['usia_bulan'], bins=[0, 6, 12, 24, 36, 60], labels=['0-6m', '6-12m', '1-2y', '2-3y', '3-5y'])
+            age_distribution = children_df.groupby(age_bins)['child_id'].nunique()
+            stunting_age_dist = {str(k): int(v) for k, v in age_distribution.items() if not pd.isna(k)}
         
-        # Household-specific trends
-        trends = []
-        
-        # Daily health trends for household members
-        if not adults_df.empty:
-            daily_bp = adults_df.groupby('date')['sistol'].mean()
-            if len(daily_bp) > 0:
-                trends.append(TrendData(
-                    dates=[d.strftime('%Y-%m-%d') for d in daily_bp.index],
-                    values=[float(v) for v in daily_bp.values],
-                    metric_name="household_avg_bp"
-                ))
-        
+        # Stunting trends for household
+        stunting_trends = []
         if not children_df.empty:
             daily_haz = children_df.groupby('date')['HAZ'].mean()
             if len(daily_haz) > 0:
-                trends.append(TrendData(
-                    dates=[d.strftime('%Y-%m-%d') for d in daily_haz.index],
-                    values=[float(v) for v in daily_haz.values],
-                    metric_name="household_avg_haz"
-                ))
+                stunting_trends.append({
+                    "dates": [d.strftime('%Y-%m-%d') for d in daily_haz.index],
+                    "values": [float(v) for v in daily_haz.values],
+                    "metric_name": "household_avg_haz"
+                })
         
-        # Daily costs
-        if not program_log.empty:
-            daily_costs = program_log.groupby('tanggal')['biaya_riil'].sum()
-            if len(daily_costs) > 0:
-                trends.append(TrendData(
-                    dates=[d.strftime('%Y-%m-%d') for d in daily_costs.index],
-                    values=[float(v) for v in daily_costs.values],
-                    metric_name="daily_costs"
-                ))
+        stunting_metrics = StuntingMetrics(
+            total_children=int(total_children),
+            children_on_program=int(stunting_participants),
+            participation_rate=float(round(stunting_participation_rate, 3)),
+            avg_haz_improvement=float(round(haz_improvement, 3)),
+            program_cost=float(int(stunting_cost)),
+            cost_per_participant=float(int(stunting_cost_per_participant))
+        )
         
-        # Household distribution data
+        # ========== COMBINED METRICS FOR HOUSEHOLD ==========
+        total_members = total_adults + total_children
+        program_participants = htn_participants + stunting_participants
+        overall_participation_rate = program_participants / total_members if total_members > 0 else 0
+        total_cost = program_log['biaya_riil'].sum()
+        
+        # Household info
         household_info_dict = {
             "income": float(household_info['pendapatan_rt']) if not pd.isna(household_info['pendapatan_rt']) else 0,
             "members": int(household_info['jumlah_anggota']) if not pd.isna(household_info['jumlah_anggota']) else 0,
@@ -558,9 +763,18 @@ async def get_household_dashboard(
         }
         
         program_costs_breakdown = program_log.groupby('program')['biaya_riil'].sum().to_dict()
+        program_distribution = {}
+        if len(program_log) > 0:
+            program_distribution = program_log['program'].value_counts().to_dict()
+            program_distribution = {str(k): int(v) for k, v in program_distribution.items()}
         
-        distribution_data = safe_serialize_dict({
+        combined_metrics = {
+            "total_participants": int(total_members),
+            "total_program_participants": int(program_participants),
+            "overall_participation_rate": float(round(overall_participation_rate, 3)),
+            "total_program_cost": float(int(total_cost)),
             "household_info": household_info_dict,
+            "program_distribution": program_distribution,
             "member_breakdown": {
                 "adults": int(total_adults),
                 "children": int(total_children),
@@ -568,15 +782,15 @@ async def get_household_dashboard(
                 "children_in_stunting_program": int(stunting_participants)
             },
             "program_costs_breakdown": {str(k): float(v) for k, v in program_costs_breakdown.items()}
-        })
+        }
         
         # Household-specific alerts
         alerts = []
         if total_members == 0:
             alerts.append("⚠️ No household members found in health programs")
-        elif participation_rate == 0:
+        elif overall_participation_rate == 0:
             alerts.append("🔴 No household members participating in health programs")
-        elif participation_rate < 0.5:
+        elif overall_participation_rate < 0.5:
             alerts.append("⚠️ Low household program participation")
         
         household_income = household_info_dict["income"]
@@ -586,16 +800,166 @@ async def get_household_dashboard(
         if total_cost > household_income * 0.1:
             alerts.append("💸 Program costs exceed 10% of household income")
             
-        return DashboardResponse(
-            summary_metrics=summary_metrics,
-            trends=trends,
-            distribution_data=distribution_data,
-            alerts=alerts
+        return SeparatedDashboardResponse(
+            hypertension_section={
+                "metrics": hypertension_metrics.dict(),
+                "age_distribution": htn_age_dist,
+                "trends": htn_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(htn_cost)),
+                    "cost_per_participant": float(int(htn_cost_per_participant)),
+                    "cost_effectiveness": float(htn_cost_per_participant / abs(bp_improvement)) if bp_improvement != 0 else 0
+                }
+            },
+            stunting_section={
+                "metrics": stunting_metrics.dict(),
+                "age_distribution": stunting_age_dist,
+                "trends": stunting_trends,
+                "cost_analysis": {
+                    "total_cost": float(int(stunting_cost)),
+                    "cost_per_participant": float(int(stunting_cost_per_participant)),
+                    "cost_effectiveness": float(stunting_cost_per_participant / abs(haz_improvement)) if haz_improvement != 0 else 0
+                }
+            },
+            combined_metrics=combined_metrics,
+            alerts=alerts,
+            time_info={
+                "period_months": period_months,
+                "start_date": start_date,
+                "end_date": end_date,
+                "current_date": end_date,  # Use data end date instead of system date
+                "period_label": f"{period_months} Month{'s' if period_months > 1 else ''}",
+                "household_id": household_id
+            }
         )
         
     except Exception as e:
         print(f"Error in household dashboard: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating household dashboard: {str(e)}")
+
+# =============================================================================
+# ADDITIONAL ANALYTICS ENDPOINTS
+# =============================================================================
+
+@app.get("/analytics/summary")
+async def get_analytics_summary():
+    """Get comprehensive analytics summary"""
+    try:
+        adults_df = data_cache['adults'].copy()
+        children_df = data_cache['children'].copy()
+        program_log = data_cache['program_log'].copy()
+        households_df = data_cache['households'].copy()
+        
+        # Overall statistics
+        total_adults = adults_df['person_id'].nunique()
+        total_children = children_df['child_id'].nunique()
+        total_households = households_df['household_id'].nunique()
+        
+        # Program coverage
+        adults_in_treatment = adults_df[adults_df['on_treatment'] == 1]['person_id'].nunique()
+        children_in_program = children_df[children_df['on_program'] == 1]['child_id'].nunique()
+        
+        # Geographic distribution
+        dusun_distribution = {}
+        try:
+            income_quartiles = pd.qcut(households_df['pendapatan_rt'], q=4, labels=['Dusun_A', 'Dusun_B', 'Dusun_C', 'Dusun_D'], duplicates='drop')
+            households_df['dusun'] = income_quartiles
+            dusun_distribution = households_df['dusun'].value_counts().to_dict()
+            dusun_distribution = {str(k): int(v) for k, v in dusun_distribution.items()}
+        except:
+            dusun_distribution = {"Dusun_A": 25, "Dusun_B": 25, "Dusun_C": 25, "Dusun_D": 25}
+        
+        # Cost analysis
+        total_program_cost = program_log['biaya_riil'].sum()
+        avg_cost_per_household = total_program_cost / total_households if total_households > 0 else 0
+        
+        # Health outcomes
+        bp_changes = adults_df.groupby('person_id')['sistol'].agg(['first', 'last'])
+        bp_changes['improvement'] = bp_changes['first'] - bp_changes['last']
+        avg_bp_improvement = bp_changes['improvement'].mean()
+        
+        haz_improvement = children_df['haz_change_this_month'].mean()
+        
+        return {
+            "population_overview": {
+                "total_adults": int(total_adults),
+                "total_children": int(total_children),
+                "total_households": int(total_households),
+                "adults_in_treatment": int(adults_in_treatment),
+                "children_in_program": int(children_in_program)
+            },
+            "geographic_distribution": dusun_distribution,
+            "financial_overview": {
+                "total_program_cost": float(total_program_cost),
+                "avg_cost_per_household": float(avg_cost_per_household),
+                "cost_effectiveness_ratio": float(total_program_cost / (adults_in_treatment + children_in_program)) if (adults_in_treatment + children_in_program) > 0 else 0
+            },
+            "health_outcomes": {
+                "avg_bp_improvement": float(avg_bp_improvement) if not pd.isna(avg_bp_improvement) else 0,
+                "avg_haz_improvement": float(haz_improvement) if not pd.isna(haz_improvement) else 0,
+                "treatment_success_rate": float((adults_in_treatment / total_adults) * 100) if total_adults > 0 else 0
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating analytics summary: {str(e)}")
+
+@app.get("/analytics/trends")
+async def get_detailed_trends():
+    """Get detailed trend analysis"""
+    try:
+        adults_df = data_cache['adults'].copy()
+        children_df = data_cache['children'].copy()
+        program_log = data_cache['program_log'].copy()
+        
+        trends = {
+            "monthly_participation": {},
+            "monthly_costs": {},
+            "health_outcomes": {},
+            "program_effectiveness": {}
+        }
+        
+        # Monthly participation trends
+        monthly_adult_participation = adults_df.groupby(adults_df['date'].dt.to_period('M'))['on_treatment'].mean()
+        monthly_child_participation = children_df.groupby(children_df['date'].dt.to_period('M'))['on_program'].mean()
+        
+        trends["monthly_participation"] = {
+            "adults": {
+                "dates": [str(d) for d in monthly_adult_participation.index],
+                "values": [float(v) for v in monthly_adult_participation.values]
+            },
+            "children": {
+                "dates": [str(d) for d in monthly_child_participation.index],
+                "values": [float(v) for v in monthly_child_participation.values]
+            }
+        }
+        
+        # Monthly costs
+        monthly_costs = program_log.groupby(program_log['tanggal'].dt.to_period('M'))['biaya_riil'].sum()
+        trends["monthly_costs"] = {
+            "dates": [str(d) for d in monthly_costs.index],
+            "values": [float(v) for v in monthly_costs.values]
+        }
+        
+        # Health outcomes trends
+        monthly_bp = adults_df.groupby(adults_df['date'].dt.to_period('M'))['sistol'].mean()
+        monthly_haz = children_df.groupby(children_df['date'].dt.to_period('M'))['HAZ'].mean()
+        
+        trends["health_outcomes"] = {
+            "blood_pressure": {
+                "dates": [str(d) for d in monthly_bp.index],
+                "values": [float(v) for v in monthly_bp.values]
+            },
+            "haz_scores": {
+                "dates": [str(d) for d in monthly_haz.index],
+                "values": [float(v) for v in monthly_haz.values]
+            }
+        }
+        
+        return trends
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating detailed trends: {str(e)}")
 
 # =============================================================================
 # UTILITY ENDPOINTS
