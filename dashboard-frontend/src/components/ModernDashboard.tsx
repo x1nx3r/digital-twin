@@ -112,7 +112,7 @@ export default function ModernDashboard() {
   // Fetch households list
   const fetchHouseholds = async () => {
     try {
-      const response = await fetch("http://localhost:8091/data/households");
+      const response = await fetch("https://pyserver.x1nx3r.uk/data/households");
       if (response.ok) {
         const data = await response.json();
         setHouseholds(data.households || []);
@@ -137,19 +137,19 @@ export default function ModernDashboard() {
         
         switch (activeView) {
           case "overall":
-            endpoint = `http://localhost:8091/dashboard/overall${timeParam}`;
+            endpoint = `https://pyserver.x1nx3r.uk/dashboard/overall${timeParam}`;
             break;
           case "dusun":
-            endpoint = `http://localhost:8091/dashboard/dusun/${selectedDusun}${timeParam}`;
+            endpoint = `https://pyserver.x1nx3r.uk/dashboard/dusun/${selectedDusun}${timeParam}`;
             break;
           case "household":
-            endpoint = `http://localhost:8091/dashboard/household/${selectedHousehold}${timeParam}`;
+            endpoint = `https://pyserver.x1nx3r.uk/dashboard/household/${selectedHousehold}${timeParam}`;
             break;
         }
 
         const response = await fetch(endpoint);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`https error! status: ${response.status}`);
         }
         
         const data = await response.json();
