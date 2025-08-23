@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: digital-twin-backend
+    ports:
+      - "8091:8091"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/db/digital_twin.db
+      - API_HOST=0.0.0.0
+      - API_PORT=8091
+    volumes:
+      # Mount data directory for CSV files
+      - ./data:/app/data:ro
+      # Mount database directory for persistence
+      - digital_twin_db:/app/db
+      # Mount the main CSV files
+      - ./adults_htn_longitudinal.csv:/app/adults_htn_longitudinal.csv:ro
+      - ./ADULTS_HTN.csv:/app/ADULTS_HTN.csv:ro
+      - ./children_stunting_longitudinal.csv:/app/children_stunting_longitudinal.csv:ro
+      - ./CHILDREN_STUNTING.csv:/app/CHILDREN_STUNTING.csv:ro
+      - ./HOUSEHOLDS.csv:/app/HOUSEHOLDS.csv:ro
+      - ./households_expanded.csv:/app/households_expanded.csv:ro
+      - ./PROGRAM_LOG.csv:/app/PROGRAM_LOG.csv:ro
+      - ./program_log_longitudinal_corrected.csv:/app/program_log_longitudinal_corrected.csv:ro
+      - ./COSTS_CATALOG.csv:/app/COSTS_CATALOG.csv:ro
+      - ./PARAMETERS.csv:/app/PARAMETERS.csv:ro
+      - ./DATA_DICTIONARY.csv:/app/DATA_DICTIONARY.csv:ro
+      - ./village_health_metrics.csv:/app/village_health_metrics.csv:ro
+      - ./.env:/app/.env:ro
+    networks:
+      - digital-twin-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: digital-twin-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8091
+      - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}
+      - NEXT_PUBLIC_USE_DATABASE=true
+      - NODE_ENV=production
+    volumes:
+      - ./dashboard-frontend/.env.local:/app/.env.local:ro
+    networks:
+      - digital-twin-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Database Migration Service (runs once)
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: digital-twin-migration
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/db/digital_twin.db
+    volumes:
+      # Same data mounts as backend
+      - ./data:/app/data:ro
+      - digital_twin_db:/app/db
+      - ./adults_htn_longitudinal.csv:/app/adults_htn_longitudinal.csv:ro
+      - ./ADULTS_HTN.csv:/app/ADULTS_HTN.csv:ro
+      - ./children_stunting_longitudinal.csv:/app/children_stunting_longitudinal.csv:ro
+      - ./CHILDREN_STUNTING.csv:/app/CHILDREN_STUNTING.csv:ro
+      - ./HOUSEHOLDS.csv:/app/HOUSEHOLDS.csv:ro
+      - ./households_expanded.csv:/app/households_expanded.csv:ro
+      - ./PROGRAM_LOG.csv:/app/PROGRAM_LOG.csv:ro
+      - ./program_log_longitudinal_corrected.csv:/app/program_log_longitudinal_corrected.csv:ro
+      - ./COSTS_CATALOG.csv:/app/COSTS_CATALOG.csv:ro
+      - ./PARAMETERS.csv:/app/PARAMETERS.csv:ro
+      - ./DATA_DICTIONARY.csv:/app/DATA_DICTIONARY.csv:ro
+      - ./village_health_metrics.csv:/app/village_health_metrics.csv:ro
+      - ./.env:/app/.env:ro
+    networks:
+      - digital-twin-network
+    command: python migrate.py
+    profiles:
+      - migration
+
+networks:
+  digital-twin-network:
+    driver: bridge
+
+volumes:
+  digital_twin_db:
+    driver: local

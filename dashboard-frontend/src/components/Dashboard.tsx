@@ -7,6 +7,7 @@ import ChartCard from './ChartCard'
 import ProgramsCard from './ProgramsCard'
 import AgeDistributionChart from './AgeDistributionChart'
 import TrendsChart from './TrendsChart'
+import { apiFetch, API_ENDPOINTS } from '@/lib/api'
 
 interface DashboardData {
   summary_metrics: {
@@ -41,10 +42,10 @@ export default function Dashboard() {
       try {
         setLoading(true)
         const endpoint = selectedDusun === 'overall' 
-          ? 'http://localhost:8091/dashboard/overall'
-          : `http://localhost:8091/dashboard/dusun/${selectedDusun}`
+          ? API_ENDPOINTS.DASHBOARD_OVERALL()
+          : API_ENDPOINTS.DASHBOARD_DUSUN(selectedDusun)
         
-        const response = await fetch(endpoint)
+        const response = await apiFetch(endpoint)
         const result = await response.json()
         setData(result)
       } catch (error) {
@@ -56,7 +57,7 @@ export default function Dashboard() {
 
     const fetchDusuns = async () => {
       try {
-        const response = await fetch('http://localhost:8091/data/dusuns')
+        const response = await apiFetch(API_ENDPOINTS.DUSUNS())
         const result = await response.json()
         setDusuns(['overall', ...result.dusuns])
       } catch (error) {

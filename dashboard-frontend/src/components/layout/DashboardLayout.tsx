@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
@@ -12,6 +13,7 @@ import {
   X,
   BarChart3,
   AlertTriangle,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ export function DashboardLayout({
   alerts = [],
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const router = useRouter();
 
   const sidebarVariants = {
     open: { width: "280px", opacity: 1 },
@@ -50,23 +53,23 @@ export function DashboardLayout({
   const menuItems = [
     {
       id: "overall",
-      label: "Overview",
+      label: "Tinjauan Umum",
       icon: BarChart3,
-      description: "System-wide metrics",
+      description: "Metrik seluruh sistem",
       active: activeView === "overall",
     },
     {
       id: "dusun",
-      label: "Dusun Analysis",
+      label: "Analisis Dusun",
       icon: Building2,
-      description: selectedDusun || "Select dusun",
+      description: selectedDusun || "Pilih dusun",
       active: activeView === "dusun",
     },
     {
       id: "household",
-      label: "Household View",
+      label: "Tampilan Rumah Tangga",
       icon: Home,
-      description: selectedHousehold || "Select household",
+      description: selectedHousehold || "Pilih rumah tangga",
       active: activeView === "household",
     },
   ];
@@ -74,31 +77,31 @@ export function DashboardLayout({
   const healthPrograms = [
     {
       id: "hypertension",
-      label: "Hypertension",
+      label: "Hipertensi",
       icon: Heart,
-      color: "bg-red-100 text-red-700",
-      description: "Adult blood pressure management",
+      color: "bg-red-100/80 text-red-700 backdrop-blur-sm",
+      description: "Manajemen tekanan darah dewasa",
     },
     {
       id: "stunting",
-      label: "Child Stunting",
+      label: "Stunting Anak",
       icon: Baby,
-      color: "bg-blue-100 text-blue-700",
-      description: "Child nutrition and growth",
+      color: "bg-blue-100/80 text-blue-700 backdrop-blur-sm",
+      description: "Nutrisi dan pertumbuhan anak",
     },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Sidebar */}
       <motion.div
-        className="fixed left-0 top-0 z-50 h-full bg-white border-r border-gray-200 shadow-lg"
+        className="fixed left-0 top-0 z-50 h-full bg-white/80 backdrop-blur-xl border-r border-blue-200/50 shadow-2xl"
         variants={sidebarVariants}
         animate={sidebarOpen ? "open" : "closed"}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-blue-200/50 bg-gradient-to-r from-blue-600/5 to-indigo-600/5">
           <AnimatePresence mode="wait">
             {sidebarOpen ? (
               <motion.div
@@ -111,10 +114,10 @@ export function DashboardLayout({
               >
                 <Activity className="h-6 w-6 text-blue-600" />
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent">
                     Digital Twin
                   </h1>
-                  <p className="text-xs text-gray-500">Kesehatan Desa</p>
+                  <p className="text-xs text-blue-600 font-medium">Kesehatan Desa</p>
                 </div>
               </motion.div>
             ) : (
@@ -124,8 +127,9 @@ export function DashboardLayout({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.2 }}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-2"
               >
-                <Activity className="h-6 w-6 text-blue-600 mx-auto" />
+                <Activity className="h-6 w-6 text-white mx-auto" />
               </motion.div>
             )}
           </AnimatePresence>
@@ -133,7 +137,7 @@ export function DashboardLayout({
             variant="ghost"
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 hover:bg-blue-100/80 text-blue-600"
           >
             {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
@@ -150,8 +154,8 @@ export function DashboardLayout({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Dashboard Views
+                <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-3">
+                  Tampilan Dashboard
                 </h2>
               </motion.div>
             )}
@@ -162,8 +166,9 @@ export function DashboardLayout({
               key={item.id}
               variant={item.active ? "default" : "ghost"}
               className={cn(
-                "w-full justify-start h-auto p-3",
-                item.active && "bg-blue-50 text-blue-700 border-blue-200",
+                "w-full justify-start h-auto p-3 transition-all duration-300",
+                item.active && "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:from-blue-700 hover:to-indigo-700",
+                !item.active && "hover:bg-blue-50/80 text-blue-700",
                 !sidebarOpen && "justify-center"
               )}
               onClick={() => onViewChange(item.id as "overall" | "dusun" | "household")}
@@ -180,7 +185,7 @@ export function DashboardLayout({
                     className="flex-1 text-left"
                   >
                     <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-gray-500">{item.description}</div>
+                    <div className="text-xs opacity-80">{item.description}</div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -188,7 +193,7 @@ export function DashboardLayout({
           ))}
         </div>
 
-        <Separator />
+        <Separator className="bg-blue-200/50" />
 
         {/* Health Programs */}
         <div className="p-4 space-y-2">
@@ -201,8 +206,8 @@ export function DashboardLayout({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Health Programs
+                <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-3">
+                  Program Kesehatan
                 </h2>
               </motion.div>
             )}
@@ -212,7 +217,7 @@ export function DashboardLayout({
             <div
               key={program.id}
               className={cn(
-                "flex items-center p-3 rounded-lg border",
+                "flex items-center p-3 rounded-xl border border-opacity-50 shadow-sm transition-all duration-300 hover:shadow-md",
                 program.color,
                 !sidebarOpen && "justify-center"
               )}
@@ -237,10 +242,59 @@ export function DashboardLayout({
           ))}
         </div>
 
+        <Separator className="bg-blue-200/50" />
+
+        {/* Data Management */}
+        <div className="p-4 space-y-2">
+          <AnimatePresence mode="wait">
+            {sidebarOpen && (
+              <motion.div
+                key="management-title"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <h2 className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-3">
+                  Manajemen Data
+                </h2>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start h-auto p-3 transition-all duration-300 hover:bg-green-50/80 text-green-700 border border-green-200/50",
+              !sidebarOpen && "justify-center"
+            )}
+            onClick={() => router.push('/crud')}
+          >
+            <Database className={cn("h-4 w-4", sidebarOpen && "mr-3")} />
+            <AnimatePresence mode="wait">
+              {sidebarOpen && (
+                <motion.div
+                  key="crud-content"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 text-left"
+                >
+                  <div className="font-medium">CRUD Management</div>
+                  <div className="text-xs opacity-80">Kelola data kesehatan</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Button>
+        </div>
+
+        <Separator className="bg-blue-200/50" />
+
         {/* Alerts */}
         {alerts.length > 0 && (
           <>
-            <Separator />
+            <Separator className="bg-blue-200/50" />
             <div className="p-4">
               <AnimatePresence mode="wait">
                 {sidebarOpen && (
@@ -252,10 +306,10 @@ export function DashboardLayout({
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Alerts
+                      <h2 className="text-xs font-semibold text-orange-600 uppercase tracking-wider">
+                        Peringatan
                       </h2>
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-xs bg-gradient-to-r from-red-500 to-orange-500">
                         {alerts.length}
                       </Badge>
                     </div>
@@ -271,7 +325,7 @@ export function DashboardLayout({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className={cn(
-                      "flex items-start p-2 bg-orange-50 border border-orange-200 rounded-lg text-orange-800",
+                      "flex items-start p-2 bg-orange-50/80 backdrop-blur-sm border border-orange-200/70 rounded-xl text-orange-800 shadow-sm",
                       !sidebarOpen && "justify-center"
                     )}
                   >
@@ -305,7 +359,7 @@ export function DashboardLayout({
         animate={sidebarOpen ? "open" : "closed"}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <div className="h-full overflow-auto bg-gray-50">
+        <div className="h-full overflow-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
           {children}
         </div>
       </motion.div>

@@ -5,6 +5,7 @@ import { Users, TrendingUp, DollarSign } from 'lucide-react'
 import MetricCard from './MetricCard'
 import ChartCard from './ChartCard'
 import { LoadingState, ErrorState } from './LoadingStates'
+import { apiFetch, API_ENDPOINTS } from '@/lib/api'
 
 interface HouseholdData {
   summary_metrics: {
@@ -34,31 +35,53 @@ export default function HouseholdDashboard({ householdId }: HouseholdDashboardPr
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await fetch(`http://localhost:8091/dashboard/household/${householdId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch household data')
-      }
-      const result = await response.json()
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await apiFetch(API_ENDPOINTS.DASHBOARD_HOUSEHOLD(householdId))
+        if (!response.ok) {
+          throw new Error('Failed to fetch household data')
+        }
+        const result = await response.json()
+        setData(result)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     if (householdId) {
       fetchData()
     }
   }, [householdId])
 
+  const retryFetch = () => {
+    if (householdId) {
+      const fetchData = async () => {
+        try {
+          setLoading(true)
+          setError(null)
+          const response = await apiFetch(API_ENDPOINTS.DASHBOARD_HOUSEHOLD(householdId))
+          if (!response.ok) {
+            throw new Error('Failed to fetch household data')
+          }
+          const result = await response.json()
+          setData(result)
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Unknown error')
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchData()
+    }
+  }
+
   if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} onRetry={fetchData} />
+  if (error) return <ErrorState message={error} onRetry={retryFetch} />
   if (!data) return <ErrorState message="No household data available" />
 
   return (

@@ -2,5 +2,10 @@ fastapi
 uvicorn
 pandas
 numpy
-pydantic
+pydantic[email]
 python-multipart
+scipy
+scikit-learn
+python-dotenv
+sqlalchemy
+passlib[bcrypt]

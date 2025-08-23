@@ -1,1 +1,3 @@
 venv
+.env
+digital_twin.db
