@@ -52,8 +52,8 @@ export function StuntingCharts({ ageDistribution, trends, metrics }: StuntingCha
 
   // Prepare participation data
   const participationData = [
-    { name: 'On Program', value: metrics.children_on_program, color: '#3B82F6' },
-    { name: 'Not on Program', value: metrics.total_children - metrics.children_on_program, color: '#F59E0B' },
+    { name: 'Dalam Program', value: metrics.children_on_program, color: '#3B82F6' },
+    { name: 'Tidak dalam Program', value: metrics.total_children - metrics.children_on_program, color: '#F59E0B' },
   ];
 
   // Prepare participation trend data
@@ -76,8 +76,8 @@ export function StuntingCharts({ ageDistribution, trends, metrics }: StuntingCha
           <Baby className="h-6 w-6 text-blue-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Child Stunting Program Analytics</h2>
-          <p className="text-gray-600">Child nutrition and growth monitoring outcomes</p>
+          <h2 className="text-2xl font-bold text-gray-900">Analitik Program Stunting Anak</h2>
+          <p className="text-gray-600">Hasil pemantauan nutrisi dan pertumbuhan anak</p>
         </div>
       </motion.div>
 
@@ -92,8 +92,8 @@ export function StuntingCharts({ ageDistribution, trends, metrics }: StuntingCha
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-blue-600" />
-                <span>Age Distribution</span>
-                <span className="text-sm text-gray-500">({metrics.total_children} children)</span>
+                <span>Distribusi Usia</span>
+                <span className="text-sm text-gray-500">({metrics.total_children} anak)</span>
               </CardTitle>
             </CardHeader>
             <CardContent>

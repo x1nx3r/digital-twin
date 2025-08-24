@@ -21,9 +21,9 @@ export function TimePeriodSelector({
   endDate 
 }: TimePeriodSelectorProps) {
   const periodOptions = [
-    { value: "1", label: "1 Bulan", description: "30 hari terakhir" },
-    { value: "3", label: "3 Bulan", description: "90 hari terakhir" },
     { value: "12", label: "12 Bulan", description: "Tahun terakhir" },
+    { value: "24", label: "24 Bulan", description: "2 tahun terakhir" },
+    { value: "36", label: "36 Bulan", description: "3 tahun terakhir" },
   ];
 
   const formatDate = (dateString?: string) => {

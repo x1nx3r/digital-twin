@@ -965,7 +965,7 @@ def analyze_hypertension_risk_factors(adults_df, households_df):
                 income_correlation = safe_correlation(merged_df['pendapatan_rt'], merged_df['hypertensive'])
                 
                 risk_factors.append({
-                    'factor': 'Socioeconomic Status (Income)',
+                    'factor': 'Penghasilan',
                     'correlation': round(income_correlation, 3),
                     'impact_description': f'Income shows {round(abs(income_correlation)*100, 1)}% correlation with hypertension',
                     'prevalence_data': income_prevalence.to_dict('records'),
@@ -997,7 +997,7 @@ def analyze_hypertension_risk_factors(adults_df, households_df):
                     treatment_effect = treated_mean - untreated_mean
                 
                 risk_factors.append({
-                    'factor': 'Treatment Adherence',
+                    'factor': 'Kepatuhan Pengobatan',
                     'correlation': round(treatment_effect / 20, 3),
                     'impact_description': f'Treatment reduces systolic BP by {abs(treatment_effect):.1f} mmHg on average',
                     'prevalence_data': treatment_analysis.to_dict('records'),
@@ -1013,9 +1013,9 @@ def analyze_hypertension_risk_factors(adults_df, households_df):
         # 4. INFRASTRUCTURE FACTORS - Simplified
         infrastructure_factors = ['kepemilikan_rumah', 'akses_listrik', 'akses_internet']
         factor_names = {
-            'kepemilikan_rumah': 'House Ownership',
-            'akses_listrik': 'Electricity Access', 
-            'akses_internet': 'Internet Access'
+            'kepemilikan_rumah': 'Kepemilikan Rumah',
+            'akses_listrik': 'Akses Listrik', 
+            'akses_internet': 'Akses Internet'
         }
         
         for factor in infrastructure_factors:

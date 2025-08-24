@@ -281,7 +281,7 @@ export function DashboardLayout({
                   transition={{ duration: 0.2 }}
                   className="flex-1 text-left"
                 >
-                  <div className="font-medium">CRUD Management</div>
+                  <div className="font-medium">Kelola Data</div>
                   <div className="text-xs opacity-80">Kelola data kesehatan</div>
                 </motion.div>
               )}
@@ -305,48 +305,12 @@ export function DashboardLayout({
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-xs font-semibold text-orange-600 uppercase tracking-wider">
-                        Peringatan
-                      </h2>
-                      <Badge variant="destructive" className="text-xs bg-gradient-to-r from-red-500 to-orange-500">
-                        {alerts.length}
-                      </Badge>
-                    </div>
+                    
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div className="space-y-2">
-                {alerts.slice(0, 3).map((alert, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className={cn(
-                      "flex items-start p-2 bg-orange-50/80 backdrop-blur-sm border border-orange-200/70 rounded-xl text-orange-800 shadow-sm",
-                      !sidebarOpen && "justify-center"
-                    )}
-                  >
-                    <AlertTriangle className={cn("h-3 w-3 mt-0.5 flex-shrink-0", sidebarOpen && "mr-2")} />
-                    <AnimatePresence mode="wait">
-                      {sidebarOpen && (
-                        <motion.div
-                          key="alert-content"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-xs"
-                        >
-                          {alert}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                ))}
-              </div>
+              
             </div>
           </>
         )}

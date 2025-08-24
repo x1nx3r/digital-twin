@@ -189,17 +189,8 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
         <CardContent className="space-y-4">
           {/* Correlation Indicator */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Impact Correlation</span>
+            <span className="text-sm text-gray-600">Korelasi Dampak</span>
             <CorrelationIndicator correlation={factor.correlation} />
-          </div>
-
-          {/* Population Affected */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Population Affected</span>
-            <div className="flex items-center space-x-1">
-              <Users className="h-3 w-3 text-blue-500" />
-              <span className="text-sm font-medium">{factor.total_affected}</span>
-            </div>
           </div>
 
           {/* Description */}
@@ -219,11 +210,11 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="hypertension" className="flex items-center space-x-2">
             <Heart className="h-4 w-4" />
-            <span>Hypertension Risk Factors</span>
+            <span>Faktor Resiko Hipertensi</span>
           </TabsTrigger>
           <TabsTrigger value="stunting" className="flex items-center space-x-2">
             <Baby className="h-4 w-4" />
-            <span>Stunting Risk Factors</span>
+            <span>Faktor Risiko Stunting</span>
           </TabsTrigger>
         </TabsList>
 
@@ -240,35 +231,29 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Target className="h-5 w-5 text-red-600" />
-                      <span>Hypertension Risk Analysis Overview</span>
+                      <span>Ikhtisar Analisis Risiko Hipertensi</span>
                       <Badge variant="outline">{hypertensionData.analysis_period.period_label}</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-gray-900">
                           {hypertensionData.population_metrics.total_population}
                         </div>
-                        <div className="text-sm text-gray-600">Total Population</div>
+                        <div className="text-sm text-gray-600">Total Populasi</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-red-600">
                           {hypertensionData.population_metrics.affected_population}
                         </div>
-                        <div className="text-sm text-gray-600">Affected</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {hypertensionData.population_metrics.population_at_risk}
-                        </div>
-                        <div className="text-sm text-gray-600">At Risk</div>
+                        <div className="text-sm text-gray-600">Terdampak</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
                           {hypertensionData.population_metrics.prevalence_rate.toFixed(1)}%
                         </div>
-                        <div className="text-sm text-gray-600">Prevalence Rate</div>
+                        <div className="text-sm text-gray-600">Tingkat Prevalensi</div>
                       </div>
                     </div>
                   </CardContent>
@@ -285,8 +270,8 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <BarChart3 className="h-5 w-5 text-red-600" />
-                      <span>Identified Risk Factors</span>
-                      <Badge>{hypertensionData.risk_factors.length} factors</Badge>
+                      <span>Faktor Resiko yang Teridentifikasi</span>
+                      <Badge>{hypertensionData.risk_factors.length} faktor</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -353,7 +338,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Shield className="h-5 w-5 text-green-600" />
-                      <span>Intervention Priorities</span>
+                      <span>Prioritas Intervensi</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -391,35 +376,29 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Target className="h-5 w-5 text-blue-600" />
-                      <span>Stunting Risk Analysis Overview</span>
+                      <span>Ikhtisar Analisis Risiko Stunting</span>
                       <Badge variant="outline">{stuntingData.analysis_period.period_label}</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-gray-900">
                           {stuntingData.population_metrics.total_population}
                         </div>
-                        <div className="text-sm text-gray-600">Total Population</div>
+                        <div className="text-sm text-gray-600">Total Populasi</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-red-600">
                           {stuntingData.population_metrics.affected_population}
                         </div>
-                        <div className="text-sm text-gray-600">Affected</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {stuntingData.population_metrics.population_at_risk}
-                        </div>
-                        <div className="text-sm text-gray-600">At Risk</div>
+                        <div className="text-sm text-gray-600">Terdampak</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
                           {stuntingData.population_metrics.prevalence_rate.toFixed(1)}%
                         </div>
-                        <div className="text-sm text-gray-600">Prevalence Rate</div>
+                        <div className="text-sm text-gray-600">Tingkat Prevalensi</div>
                       </div>
                     </div>
                   </CardContent>
@@ -436,8 +415,8 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <BarChart3 className="h-5 w-5 text-blue-600" />
-                      <span>Identified Risk Factors</span>
-                      <Badge>{stuntingData.risk_factors.length} factors</Badge>
+                      <span>Faktor Resiko yang Teridentifikasi</span>
+                      <Badge>{stuntingData.risk_factors.length} faktor</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -504,7 +483,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Shield className="h-5 w-5 text-green-600" />
-                      <span>Intervention Priorities</span>
+                      <span>Prioritas Intervensi</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

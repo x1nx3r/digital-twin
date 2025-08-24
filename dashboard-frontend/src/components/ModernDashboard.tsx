@@ -106,7 +106,7 @@ export default function ModernDashboard() {
   const [activeView, setActiveView] = useState<"overall" | "dusun" | "household">("overall");
   const [selectedDusun, setSelectedDusun] = useState<string>("Dusun_A");
   const [selectedHousehold, setSelectedHousehold] = useState<string>("HH001");
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>("1");
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>("12");
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +117,7 @@ export default function ModernDashboard() {
   // Mengambil daftar rumah tangga
   const fetchHouseholds = async () => {
     try {
-      const response = await apiFetch(API_ENDPOINTS.HOUSEHOLDS);
+      const response = await apiFetch(API_ENDPOINTS.HOUSEHOLDS_DATA());
       if (response.ok) {
         const data = await response.json();
         setHouseholds(data.households || []);
@@ -130,6 +130,13 @@ export default function ModernDashboard() {
   useEffect(() => {
     fetchHouseholds();
   }, []);
+
+  // Set first available household if current selection doesn't exist
+  useEffect(() => {
+    if (households.length > 0 && !households.find(h => h.household_id === selectedHousehold)) {
+      setSelectedHousehold(households[0].household_id);
+    }
+  }, [households, selectedHousehold]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -273,9 +280,14 @@ export default function ModernDashboard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white/95 backdrop-blur-lg border-blue-200">
-                  {households.slice(0, 20).map((household) => (
+                  {households.map((household) => (
                     <SelectItem key={household.household_id} value={household.household_id} className="hover:bg-blue-50">
-                      {household.household_id}
+                      <div className="flex items-center justify-between w-full">
+                        <span>{household.household_id}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          {household.jumlah_anggota} anggota
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -350,7 +362,7 @@ export default function ModernDashboard() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Tabs defaultValue="hypertension" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-white/70 backdrop-blur-lg rounded-2xl border border-blue-200/50 p-1">
+            <TabsList className={`grid w-full ${activeView === "overall" ? "grid-cols-4" : "grid-cols-2"} bg-white/70 backdrop-blur-lg rounded-2xl border border-blue-200/50 p-1`}>
               <TabsTrigger value="hypertension" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white transition-all duration-300">
                 <Heart className="h-4 w-4" />
                 <span>Hipertensi</span>
@@ -359,14 +371,18 @@ export default function ModernDashboard() {
                 <Baby className="h-4 w-4" />
                 <span>Stunting Anak</span>
               </TabsTrigger>
-              <TabsTrigger value="risk-factors" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white transition-all duration-300">
-                <Shield className="h-4 w-4" />
-                <span>Faktor Risiko</span>
-              </TabsTrigger>
-              <TabsTrigger value="predictions" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white transition-all duration-300">
-                <Brain className="h-4 w-4" />
-                <span>Prediksi AI</span>
-              </TabsTrigger>
+              {activeView === "overall" && (
+                <>
+                  <TabsTrigger value="risk-factors" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white transition-all duration-300">
+                    <Shield className="h-4 w-4" />
+                    <span>Faktor Risiko</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="predictions" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white transition-all duration-300">
+                    <Brain className="h-4 w-4" />
+                    <span>Prediksi AI</span>
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             <TabsContent value="hypertension" className="space-y-6">
@@ -441,19 +457,23 @@ export default function ModernDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="risk-factors" className="space-y-6">
-              {/* Risk Factors Analysis */}
-              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
-                <RiskFactorsAnalysis selectedTimePeriod={selectedTimePeriod} />
-              </div>
-            </TabsContent>
+            {activeView === "overall" && (
+              <>
+                <TabsContent value="risk-factors" className="space-y-6">
+                  {/* Risk Factors Analysis */}
+                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+                    <RiskFactorsAnalysis selectedTimePeriod={selectedTimePeriod} />
+                  </div>
+                </TabsContent>
 
-            <TabsContent value="predictions" className="space-y-6">
-              {/* AI Predictions */}
-              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
-                <PredictionDashboard />
-              </div>
-            </TabsContent>
+                <TabsContent value="predictions" className="space-y-6">
+                  {/* AI Predictions */}
+                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+                    <PredictionDashboard />
+                  </div>
+                </TabsContent>
+              </>
+            )}
           </Tabs>
         </motion.div>
 

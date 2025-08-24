@@ -52,8 +52,8 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
 
   // Prepare participation data
   const participationData = [
-    { name: 'On Treatment', value: metrics.adults_on_treatment, color: '#10B981' },
-    { name: 'Not on Treatment', value: metrics.total_adults - metrics.adults_on_treatment, color: '#EF4444' },
+    { name: 'Dalam Pengobatan', value: metrics.adults_on_treatment, color: '#10B981' },
+    { name: 'Tidak dalam Pengobatan', value: metrics.total_adults - metrics.adults_on_treatment, color: '#EF4444' },
   ];
 
   // Prepare participation trend data
@@ -76,8 +76,8 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
           <Heart className="h-6 w-6 text-red-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Hypertension Program Analytics</h2>
-          <p className="text-gray-600">Adult blood pressure management and treatment outcomes</p>
+          <h2 className="text-2xl font-bold text-gray-900">Analitik Program Hipertensi</h2>
+          <p className="text-gray-600">Manajemen tekanan darah dewasa dan hasil pengobatan</p>
         </div>
       </motion.div>
 
@@ -92,8 +92,8 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-red-600" />
-                <span>Age Distribution</span>
-                <span className="text-sm text-gray-500">({metrics.total_adults} adults)</span>
+                <span>Distribusi Usia</span>
+                <span className="text-sm text-gray-500">({metrics.total_adults} dewasa)</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -116,9 +116,9 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
                         const data = payload[0].payload;
                         return (
                           <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-                            <p className="font-medium text-gray-900">{data.range} years</p>
-                            <p className="text-red-600">Count: <span className="font-semibold">{data.count}</span></p>
-                            <p className="text-gray-600">Percentage: {data.percentage}%</p>
+                            <p className="font-medium text-gray-900">{data.range} tahun</p>
+                            <p className="text-red-600">Jumlah: <span className="font-semibold">{data.count}</span></p>
+                            <p className="text-gray-600">Persentase: {data.percentage}%</p>
                           </div>
                         );
                       }
@@ -147,7 +147,7 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Activity className="h-5 w-5 text-red-600" />
-                <span>Treatment Participation</span>
+                <span>Partisipasi Pengobatan</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -174,10 +174,10 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
                           <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                             <p className="font-medium text-gray-900">{data.name}</p>
                             <p style={{ color: data.color }}>
-                              Count: <span className="font-semibold">{data.value}</span>
+                              Jumlah: <span className="font-semibold">{data.value}</span>
                             </p>
                             <p className="text-gray-600">
-                              Rate: {((data.value / metrics.total_adults) * 100).toFixed(1)}%
+                              Tingkat: {((data.value / metrics.total_adults) * 100).toFixed(1)}%
                             </p>
                           </div>
                         );
@@ -217,7 +217,7 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <TrendingUp className="h-5 w-5 text-red-600" />
-                  <span>Blood Pressure Trends</span>
+                  <span>Tren Tekanan Darah</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -241,7 +241,7 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
                             <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                               <p className="font-medium text-gray-900">{label}</p>
                               <p className="text-red-600">
-                                Avg BP: <span className="font-semibold">{payload[0].value?.toFixed(1)} mmHg</span>
+                                Rata-rata TD: <span className="font-semibold">{payload[0].value?.toFixed(1)} mmHg</span>
                               </p>
                             </div>
                           );
@@ -276,7 +276,7 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Activity className="h-5 w-5 text-green-600" />
-                  <span>Participation Rate Trends</span>
+                  <span>Tren Tingkat Partisipasi</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -300,7 +300,7 @@ export function HypertensionCharts({ ageDistribution, trends, metrics }: Hyperte
                             <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                               <p className="font-medium text-gray-900">{label}</p>
                               <p className="text-green-600">
-                                Participation: <span className="font-semibold">{payload[0].value}%</span>
+                                Partisipasi: <span className="font-semibold">{payload[0].value}%</span>
                               </p>
                             </div>
                           );
