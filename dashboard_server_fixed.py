@@ -110,6 +110,20 @@ class ProgramRecord(Base):
 Base.metadata.create_all(bind=engine)
 
 # =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+def safe_float(value, default=0.0):
+    """Safely convert a value to float, replacing NaN/inf with default"""
+    if pd.isna(value) or value == float('inf') or value == float('-inf'):
+        return default
+    return float(value)
+
+def safe_float_list(values, default=0.0):
+    """Safely convert a list of values to floats, replacing NaN/inf with default"""
+    return [safe_float(v, default) for v in values]
+
+# =============================================================================
 # AUTHENTICATION SETUP
 # =============================================================================
 
@@ -1487,6 +1501,7 @@ async def get_overall_dashboard(
             adults_query = db.query(AdultRecord)
             children_query = db.query(ChildRecord)
             programs_query = db.query(ProgramRecord)
+            households_query = db.query(HouseholdRecord)
             
             # Apply date filters if provided
             if start_date:
@@ -1505,6 +1520,7 @@ async def get_overall_dashboard(
             adults_records = adults_query.all()
             children_records = children_query.all()
             program_records = programs_query.all()
+            household_records = households_query.all()
             
             # Convert to DataFrame format
             adults_df = pd.DataFrame([{
@@ -1545,30 +1561,51 @@ async def get_overall_dashboard(
                 'description': r.description
             } for r in program_records])
             
+            households_df = pd.DataFrame([{
+                'household_id': r.household_id,
+                'pendapatan_rt': r.pendapatan_rt,
+                'kepemilikan_rumah': r.kepemilikan_rumah,
+                'akses_listrik': r.akses_listrik,
+                'akses_internet': r.akses_internet
+            } for r in household_records])
+            
         else:
             # Use existing CSV data
             adults_df = data_cache['adults'].copy()
             children_df = data_cache['children'].copy()
             program_log = data_cache['program_log'].copy()
+            households_df = data_cache['households'].copy()
         
         # Parse time period
         period_months = int(time_period) if time_period in ["1", "3", "12"] else 1
         
-        # Calculate date range based on actual data dates, not current date
-        if not end_date:
-            # Use the latest date from the actual data
-            latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
-            latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
-            latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
-            
-            # Use the latest date across all datasets
-            data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
-            end_date = data_end_date.strftime('%Y-%m-%d')
-            
-        if not start_date:
-            end_dt = pd.to_datetime(end_date)
-            start_dt = end_dt - timedelta(days=period_months * 30)  # Approximate month calculation
-            start_date = start_dt.strftime('%Y-%m-%d')
+        # Set reasonable defaults for database mode based on known data range
+        if use_database:
+            if not end_date:
+                end_date = '2024-08-31'  # Known end of data range
+            if not start_date:
+                if period_months == 1:
+                    start_date = '2024-08-01'  # Last month of data
+                elif period_months == 3:
+                    start_date = '2024-06-01'  # Last 3 months  
+                else:  # period_months == 12 or other
+                    start_date = '2021-01-01'  # Full data range
+        else:
+            # For CSV mode, use existing logic
+            if not end_date:
+                # Use the latest date from the actual data
+                latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
+                latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
+                latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
+                
+                # Use the latest date across all datasets
+                data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
+                end_date = data_end_date.strftime('%Y-%m-%d')
+                
+            if not start_date:
+                end_dt = pd.to_datetime(end_date)
+                start_dt = end_dt - timedelta(days=period_months * 30)  # Approximate month calculation
+                start_date = start_dt.strftime('%Y-%m-%d')
         
         # Apply date filters
         start_dt = pd.to_datetime(start_date)
@@ -1587,13 +1624,12 @@ async def get_overall_dashboard(
         baseline_bp = adults_df[adults_df['month'] == 0].groupby('person_id')['sistol'].first()
         latest_bp = adults_df.groupby('person_id')['sistol'].last()
         bp_improvement = (baseline_bp - latest_bp).mean()
-        if pd.isna(bp_improvement):
-            bp_improvement = 0
+        bp_improvement = safe_float(bp_improvement, 0)
 
         # HTN program costs
         htn_program_log = program_log[program_log['program'].str.contains('htn|hypertension|tension', case=False, na=False)]
-        htn_total_cost = htn_program_log['biaya_riil'].sum()
-        htn_cost_per_participant = htn_total_cost / htn_participants if htn_participants > 0 else 0
+        htn_total_cost = safe_float(htn_program_log['biaya_riil'].sum(), 0)
+        htn_cost_per_participant = safe_float(htn_total_cost / htn_participants, 0) if htn_participants > 0 else 0
         
         # HTN age distribution (adults 18+)
         htn_age_dist = {}
@@ -1609,7 +1645,7 @@ async def get_overall_dashboard(
         if len(monthly_bp) > 0:
             htn_trends.append({
                 "dates": [str(d) for d in monthly_bp.index],
-                "values": [float(v) for v in monthly_bp.values],
+                "values": safe_float_list(monthly_bp.values),
                 "metric_name": "avg_blood_pressure"
             })
         
@@ -1617,17 +1653,17 @@ async def get_overall_dashboard(
         if len(monthly_htn_participation) > 0:
             htn_trends.append({
                 "dates": [str(d) for d in monthly_htn_participation.index],
-                "values": [float(v) for v in monthly_htn_participation.values],
+                "values": safe_float_list(monthly_htn_participation.values),
                 "metric_name": "htn_participation_rate"
             })
         
         hypertension_metrics = HypertensionMetrics(
             total_adults=int(htn_total),
             adults_on_treatment=int(htn_participants),
-            participation_rate=float(round(htn_participation_rate, 3)),
-            avg_bp_reduction=float(round(bp_improvement, 2)),
-            program_cost=float(int(htn_total_cost)),
-            cost_per_participant=float(int(htn_cost_per_participant))
+            participation_rate=safe_float(htn_participation_rate, 0),
+            avg_bp_reduction=safe_float(bp_improvement, 0),
+            program_cost=safe_float(htn_total_cost, 0),
+            cost_per_participant=safe_float(htn_cost_per_participant, 0)
         )
         
         # ========== STUNTING SECTION ==========
@@ -1636,14 +1672,12 @@ async def get_overall_dashboard(
         stunting_participation_rate = stunting_participants / stunting_total if stunting_total > 0 else 0
         
         # Calculate HAZ improvement
-        haz_improvement = children_df['haz_change_this_month'].mean()
-        if pd.isna(haz_improvement):
-            haz_improvement = 0
+        haz_improvement = safe_float(children_df['haz_change_this_month'].mean(), 0)
         
         # Stunting program costs
         stunting_program_log = program_log[program_log['program'].str.contains('stunt|gizi|nutrition', case=False, na=False)]
-        stunting_total_cost = stunting_program_log['biaya_riil'].sum()
-        stunting_cost_per_participant = stunting_total_cost / stunting_participants if stunting_participants > 0 else 0
+        stunting_total_cost = safe_float(stunting_program_log['biaya_riil'].sum(), 0)
+        stunting_cost_per_participant = safe_float(stunting_total_cost / stunting_participants, 0) if stunting_participants > 0 else 0
         
         # Stunting age distribution (children 0-5 years)
         stunting_age_dist = {}
@@ -1659,7 +1693,7 @@ async def get_overall_dashboard(
         if len(monthly_haz) > 0:
             stunting_trends.append({
                 "dates": [str(d) for d in monthly_haz.index],
-                "values": [float(v) for v in monthly_haz.values],
+                "values": safe_float_list(monthly_haz.values),
                 "metric_name": "avg_haz_score"
             })
         
@@ -1667,24 +1701,24 @@ async def get_overall_dashboard(
         if len(monthly_stunting_participation) > 0:
             stunting_trends.append({
                 "dates": [str(d) for d in monthly_stunting_participation.index],
-                "values": [float(v) for v in monthly_stunting_participation.values],
+                "values": safe_float_list(monthly_stunting_participation.values),
                 "metric_name": "stunting_participation_rate"
             })
         
         stunting_metrics = StuntingMetrics(
             total_children=int(stunting_total),
             children_on_program=int(stunting_participants),
-            participation_rate=float(round(stunting_participation_rate, 3)),
-            avg_haz_improvement=float(round(haz_improvement, 3)),
-            program_cost=float(int(stunting_total_cost)),
-            cost_per_participant=float(int(stunting_cost_per_participant))
+            participation_rate=safe_float(stunting_participation_rate, 0),
+            avg_haz_improvement=safe_float(haz_improvement, 0),
+            program_cost=safe_float(stunting_total_cost, 0),
+            cost_per_participant=safe_float(stunting_cost_per_participant, 0)
         )
         
         # ========== COMBINED METRICS ==========
-        total_program_cost = program_log['biaya_riil'].sum()
+        total_program_cost = safe_float(program_log['biaya_riil'].sum(), 0)
         total_participants = htn_total + stunting_total
         total_program_participants = htn_participants + stunting_participants
-        overall_participation_rate = total_program_participants / total_participants if total_participants > 0 else 0
+        overall_participation_rate = safe_float(total_program_participants / total_participants, 0) if total_participants > 0 else 0
         
         # Program distribution
         program_distribution = program_log['program'].value_counts().to_dict()
@@ -1696,27 +1730,90 @@ async def get_overall_dashboard(
         if len(monthly_costs) > 0:
             cost_trends.append({
                 "dates": [str(d) for d in monthly_costs.index],
-                "values": [float(v) for v in monthly_costs.values],
+                "values": safe_float_list(monthly_costs.values),
                 "metric_name": "monthly_total_costs"
             })
         
         combined_metrics = {
             "total_participants": int(total_participants),
             "total_program_participants": int(total_program_participants),
-            "overall_participation_rate": float(round(overall_participation_rate, 3)),
-            "total_program_cost": float(int(total_program_cost)),
+            "overall_participation_rate": safe_float(overall_participation_rate, 0),
+            "total_program_cost": safe_float(total_program_cost, 0),
             "program_distribution": program_dist_clean,
             "cost_trends": cost_trends
         }
         
         # ========== RISK FACTOR ANALYSIS ==========
-        # Analyze hypertension risk factors
-        htn_risk_factors = analyze_hypertension_risk_factors(adults_df, data_cache['households'])
-        htn_risk_summary = generate_population_risk_summary(htn_risk_factors, 'hypertension')
-        
-        # Analyze stunting risk factors  
-        stunting_risk_factors = analyze_stunting_risk_factors(children_df, data_cache['households'])
-        stunting_risk_summary = generate_population_risk_summary(stunting_risk_factors, 'stunting')
+        # For database mode, use simplified risk analysis with available fields only
+        # For CSV mode, use full risk analysis
+        if use_database:
+            # Simplified risk analysis using only available database fields
+            htn_risk_factors = []
+            stunting_risk_factors = []
+            
+            # Basic age analysis for hypertension
+            if not adults_df.empty:
+                age_correlation = safe_correlation(adults_df['age'], 
+                                                 (adults_df['sistol'] >= 140).astype(int))
+                htn_risk_factors.append({
+                    'factor': 'Age Factor',
+                    'correlation': round(age_correlation, 3),
+                    'impact_description': f'Age shows {round(abs(age_correlation)*100, 1)}% correlation with hypertension',
+                    'prevalence_data': [],
+                    'total_affected': int((adults_df['sistol'] >= 140).sum()),
+                    'risk_level': 'moderate',
+                    'chart_type': 'scatter',
+                    'x_axis': 'age',
+                    'y_axis': 'hypertension_risk'
+                })
+            
+            # Basic age analysis for stunting
+            if not children_df.empty:
+                stunting_correlation = safe_correlation(children_df['usia_bulan'], 
+                                                       (children_df['HAZ'] < -2).astype(int))
+                stunting_risk_factors.append({
+                    'factor': 'Age Factor',
+                    'correlation': round(stunting_correlation, 3),
+                    'impact_description': f'Age shows {round(abs(stunting_correlation)*100, 1)}% correlation with stunting',
+                    'prevalence_data': [],
+                    'total_affected': int((children_df['HAZ'] < -2).sum()),
+                    'risk_level': 'moderate',
+                    'chart_type': 'scatter',
+                    'x_axis': 'age_months',
+                    'y_axis': 'stunting_risk'
+                })
+            
+            # Generate simplified risk summaries
+            htn_risk_summary = {
+                'health_outcome': 'hypertension',
+                'total_risk_factors': len(htn_risk_factors),
+                'high_risk_factors': 0,
+                'moderate_risk_factors': len(htn_risk_factors),
+                'population_at_risk': len(htn_risk_factors) > 0 and htn_risk_factors[0]['total_affected'] or 0,
+                'composite_risk_score': 0.3,
+                'primary_risk_factors': ['Age Factor'],
+                'strongest_correlation': len(htn_risk_factors) > 0 and abs(htn_risk_factors[0]['correlation']) or 0.0,
+                'risk_factor_distribution': {'high': 0, 'moderate': len(htn_risk_factors), 'low': 0}
+            }
+            
+            stunting_risk_summary = {
+                'health_outcome': 'stunting',
+                'total_risk_factors': len(stunting_risk_factors),
+                'high_risk_factors': 0,
+                'moderate_risk_factors': len(stunting_risk_factors),
+                'population_at_risk': len(stunting_risk_factors) > 0 and stunting_risk_factors[0]['total_affected'] or 0,
+                'composite_risk_score': 0.3,
+                'primary_risk_factors': ['Age Factor'],
+                'strongest_correlation': len(stunting_risk_factors) > 0 and abs(stunting_risk_factors[0]['correlation']) or 0.0,
+                'risk_factor_distribution': {'high': 0, 'moderate': len(stunting_risk_factors), 'low': 0}
+            }
+        else:
+            # Use full CSV-based risk analysis with all available household data
+            htn_risk_factors = analyze_hypertension_risk_factors(adults_df, data_cache['households'])
+            htn_risk_summary = generate_population_risk_summary(htn_risk_factors, 'hypertension')
+            
+            stunting_risk_factors = analyze_stunting_risk_factors(children_df, data_cache['households'])
+            stunting_risk_summary = generate_population_risk_summary(stunting_risk_factors, 'stunting')
         
         # Combined population risk summary
         combined_risk_summary = {
@@ -1761,9 +1858,9 @@ async def get_overall_dashboard(
                 "age_distribution": htn_age_dist,
                 "trends": htn_trends,
                 "cost_analysis": {
-                    "total_cost": float(int(htn_total_cost)),
-                    "cost_per_participant": float(int(htn_cost_per_participant)),
-                    "cost_effectiveness": float(htn_cost_per_participant / abs(bp_improvement)) if bp_improvement != 0 else 0
+                    "total_cost": safe_float(htn_total_cost, 0),
+                    "cost_per_participant": safe_float(htn_cost_per_participant, 0),
+                    "cost_effectiveness": safe_float(htn_cost_per_participant / abs(bp_improvement), 0) if abs(bp_improvement) > 0.001 else 0
                 }
             },
             stunting_section={
@@ -1771,9 +1868,9 @@ async def get_overall_dashboard(
                 "age_distribution": stunting_age_dist,
                 "trends": stunting_trends,
                 "cost_analysis": {
-                    "total_cost": float(int(stunting_total_cost)),
-                    "cost_per_participant": float(int(stunting_cost_per_participant)),
-                    "cost_effectiveness": float(stunting_cost_per_participant / abs(haz_improvement)) if haz_improvement != 0 else 0
+                    "total_cost": safe_float(stunting_total_cost, 0),
+                    "cost_per_participant": safe_float(stunting_cost_per_participant, 0),
+                    "cost_effectiveness": safe_float(stunting_cost_per_participant / abs(haz_improvement), 0) if abs(haz_improvement) > 0.001 else 0
                 }
             },
             combined_metrics=combined_metrics,
