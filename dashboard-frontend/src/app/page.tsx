@@ -1,9 +1,21 @@
-import ModernDashboard from '@/components/ModernDashboard'
+"use client";
+
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthPage } from '@/components/auth/AuthPage';
+import ModernDashboard from '@/components/ModernDashboard';
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <ModernDashboard />
-    </main>
-  );
+  const { isAuthenticated, login } = useAuth();
+
+  const handleAuth = (success: boolean) => {
+    if (success) {
+      login();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
+
+  return <ModernDashboard />;
 }

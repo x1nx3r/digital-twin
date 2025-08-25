@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity,
   Baby,
@@ -14,6 +15,7 @@ import {
   BarChart3,
   AlertTriangle,
   Database,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,7 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
+  const { logout } = useAuth();
 
   const sidebarVariants = {
     open: { width: "280px", opacity: 1 },
@@ -290,30 +293,35 @@ export function DashboardLayout({
         </div>
 
         <Separator className="bg-blue-200/50" />
-
-        {/* Alerts */}
-        {alerts.length > 0 && (
-          <>
-            <Separator className="bg-blue-200/50" />
-            <div className="p-4">
-              <AnimatePresence mode="wait">
-                {sidebarOpen && (
-                  <motion.div
-                    key="alerts-title"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              
-            </div>
-          </>
-        )}
+        
+        {/* Logout Button */}
+        <div className="mt-auto p-4">
+          <Button
+            onClick={logout}
+            className={cn(
+              "w-full justify-start h-auto p-3 transition-all duration-300 hover:bg-red-50/80 text-red-700 border border-red-200/50",
+              "bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md"
+            )}
+            variant="ghost"
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            <AnimatePresence mode="wait">
+              {sidebarOpen && (
+                <motion.div
+                  key="logout-text"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 text-left ml-3"
+                >
+                  <div className="font-medium">Keluar</div>
+                  <div className="text-xs opacity-80">Logout dari sistem</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Button>
+        </div>
       </motion.div>
 
       {/* Main Content */}
