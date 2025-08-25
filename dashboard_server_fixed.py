@@ -293,8 +293,8 @@ class ProgramResponse(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Digital Twin Health Dashboard API with CRUD Operations",
-    description="API for comprehensive health program monitoring with full CRUD functionality and secure authentication",
+    title="API Dasbor Kesehatan Digital Twin dengan Operasi CRUD",
+    description="API untuk pemantauan program kesehatan dengan fungsionalitas CRUD lengkap dan autentikasi aman",
     version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -1576,36 +1576,25 @@ async def get_overall_dashboard(
             program_log = data_cache['program_log'].copy()
             households_df = data_cache['households'].copy()
         
-        # Parse time period
-        period_months = int(time_period) if time_period in ["1", "3", "12"] else 1
-        
-        # Set reasonable defaults for database mode based on known data range
-        if use_database:
-            if not end_date:
-                end_date = '2024-08-31'  # Known end of data range
-            if not start_date:
-                if period_months == 1:
-                    start_date = '2024-08-01'  # Last month of data
-                elif period_months == 3:
-                    start_date = '2024-06-01'  # Last 3 months  
-                else:  # period_months == 12 or other
-                    start_date = '2021-01-01'  # Full data range
-        else:
-            # For CSV mode, use existing logic
-            if not end_date:
-                # Use the latest date from the actual data
-                latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
-                latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
-                latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
-                
-                # Use the latest date across all datasets
-                data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
-                end_date = data_end_date.strftime('%Y-%m-%d')
-                
-            if not start_date:
-                end_dt = pd.to_datetime(end_date)
-                start_dt = end_dt - timedelta(days=period_months * 30)  # Approximate month calculation
-                start_date = start_dt.strftime('%Y-%m-%d')
+        # Parse time period (accept numeric months like 1,3,12,24,36)
+        try:
+            period_months = int(time_period) if time_period and str(time_period).isdigit() and int(time_period) > 0 else 1
+        except Exception:
+            period_months = 1
+
+        # Determine default end_date/start_date from the actual data (works for DB and CSV modes)
+        if not end_date:
+            latest_adult_date = adults_df['date'].max() if not adults_df.empty else pd.Timestamp('2023-12-31')
+            latest_children_date = children_df['date'].max() if not children_df.empty else pd.Timestamp('2023-12-31')
+            latest_program_date = program_log['tanggal'].max() if not program_log.empty else pd.Timestamp('2023-12-31')
+            data_end_date = max(latest_adult_date, latest_children_date, latest_program_date)
+            end_date = pd.to_datetime(data_end_date).strftime('%Y-%m-%d')
+
+        if not start_date:
+            end_dt = pd.to_datetime(end_date)
+            # Approximate months by 30 days each (sufficient for dashboard windows)
+            start_dt = end_dt - timedelta(days=period_months * 30)
+            start_date = start_dt.strftime('%Y-%m-%d')
         
         # Apply date filters
         start_dt = pd.to_datetime(start_date)
@@ -1831,26 +1820,26 @@ async def get_overall_dashboard(
         # ========== ALERTS ==========
         alerts = []
         if htn_participation_rate < 0.5:
-            alerts.append("⚠️ Low hypertension program participation rate")
+            alerts.append("⚠️ Tingkat partisipasi program hipertensi rendah")
         if stunting_participation_rate < 0.5:
-            alerts.append("⚠️ Low stunting program participation rate")
+            alerts.append("⚠️ Tingkat partisipasi program stunting rendah")
         if bp_improvement < 0:
-            alerts.append("🔴 Blood pressure trends showing deterioration")
+            alerts.append("🔴 Tren tekanan darah menunjukkan penurunan")
         if haz_improvement < 0:
-            alerts.append("🔴 HAZ scores trends showing deterioration")
+            alerts.append("🔴 Tren skor HAZ menunjukkan penurunan")
         if htn_cost_per_participant > 300000:
-            alerts.append("💰 High cost per hypertension participant")
+            alerts.append("💰 Biaya per partisipan hipertensi tinggi")
         if stunting_cost_per_participant > 200000:
-            alerts.append("💰 High cost per stunting participant")
+            alerts.append("💰 Biaya per partisipan stunting tinggi")
         
         # Add risk factor alerts
         high_risk_htn = [rf for rf in htn_risk_factors if rf['risk_level'] == 'high']
         high_risk_stunting = [rf for rf in stunting_risk_factors if rf['risk_level'] == 'high']
         
         if len(high_risk_htn) >= 3:
-            alerts.append(f"🚨 {len(high_risk_htn)} high-risk factors identified for hypertension")
+            alerts.append(f"🚨 {len(high_risk_htn)} faktor risiko tinggi teridentifikasi untuk hipertensi")
         if len(high_risk_stunting) >= 3:
-            alerts.append(f"🚨 {len(high_risk_stunting)} high-risk factors identified for stunting")
+            alerts.append(f"🚨 {len(high_risk_stunting)} faktor risiko tinggi teridentifikasi untuk stunting")
             
         return SeparatedDashboardResponse(
             hypertension_section={

@@ -11,6 +11,7 @@ export interface AdultRecord {
   on_treatment: boolean;
   diabetes_koin: boolean;
   perokok: boolean;
+  adherence_current?: number;
   keturunan_hipertensi: boolean;
   aktivitas_fisik_rendah: boolean;
   created_at?: string;
@@ -28,6 +29,7 @@ export interface AdultCreate {
   on_treatment?: boolean;
   diabetes_koin?: boolean;
   perokok?: boolean;
+  adherence_current?: number;
   keturunan_hipertensi?: boolean;
   aktivitas_fisik_rendah?: boolean;
 }
@@ -71,6 +73,10 @@ export interface HouseholdRecord {
   rw: string;
   village: string;
   subdistrict: string;
+  pendapatan_rt?: number;
+  kepemilikan_rumah?: boolean;
+  akses_listrik?: boolean;
+  akses_internet?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -82,6 +88,10 @@ export interface HouseholdCreate {
   rw: string;
   village: string;
   subdistrict: string;
+  pendapatan_rt?: number;
+  kepemilikan_rumah?: boolean;
+  akses_listrik?: boolean;
+  akses_internet?: boolean;
 }
 
 export interface ProgramRecord {

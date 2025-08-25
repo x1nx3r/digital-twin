@@ -145,9 +145,9 @@ export function StuntingCharts({ ageDistribution, trends, metrics }: StuntingCha
         >
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center space-x-2">
                 <Activity className="h-5 w-5 text-blue-600" />
-                <span>Program Participation</span>
+                <span>Partisipasi Program</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -276,7 +276,7 @@ export function StuntingCharts({ ageDistribution, trends, metrics }: StuntingCha
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Activity className="h-5 w-5 text-green-600" />
-                  <span>Participation Rate Trends</span>
+                  <span>Tren Tingkat Partisipasi</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>

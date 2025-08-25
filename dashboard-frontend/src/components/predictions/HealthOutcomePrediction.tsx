@@ -404,18 +404,7 @@ export function HealthOutcomePrediction({ personId }: HealthOutcomePredictionPro
                 </ul>
               </div>
 
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Dampak Skenario:</h4>
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <p className="text-sm font-medium text-blue-900">{data.scenario_impact.scenario}</p>
-                  <p className="text-sm text-blue-700 mt-1">{data.scenario_impact.description}</p>
-                  <div className="mt-2">
-                    <Badge className="bg-blue-100 text-blue-800">
-                      Estimasi Perbaikan: {data.scenario_impact.estimated_improvement}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+              
             </div>
           </CardContent>
         </Card>

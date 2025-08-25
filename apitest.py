@@ -16,7 +16,7 @@ def test_api():
     try:
         response = requests.get(f"{BASE_URL}/health")
         print(f"✅ Health check: {response.status_code}")
-        print(f"   Response: {response.json()}")
+        print(f"   Respon: {response.json()}")
     except Exception as e:
         print(f"❌ Health check failed: {e}")
         return
@@ -27,16 +27,16 @@ def test_api():
         response = requests.get(f"{BASE_URL}/dashboard/overall")
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Overall dashboard: {response.status_code}")
-            print(f"   Total participants: {data['summary_metrics']['total_participants']}")
-            print(f"   Program participants: {data['summary_metrics']['program_participants']}")
-            print(f"   Participation rate: {data['summary_metrics']['participation_rate']:.1%}")
-            print(f"   Total cost: Rp {data['summary_metrics']['total_program_cost']:,}")
-            print(f"   Alerts: {len(data['alerts'])}")
+            print(f"✅ Dasbor keseluruhan: {response.status_code}")
+            print(f"   Total partisipan: {data['summary_metrics']['total_participants']}")
+            print(f"   Partisipan program: {data['summary_metrics']['program_participants']}")
+            print(f"   Tingkat partisipasi: {data['summary_metrics']['participation_rate']:.1%}")
+            print(f"   Total biaya: Rp {data['summary_metrics']['total_program_cost']:,}")
+            print(f"   Peringatan: {len(data['alerts'])}")
             
             # Display distribution data
-            print(f"   Age distribution: {data['distribution_data']['age_distribution']}")
-            print(f"   Program distribution: {data['distribution_data']['program_distribution']}")
+            print(f"   Distribusi usia: {data['distribution_data']['age_distribution']}")
+            print(f"   Distribusi program: {data['distribution_data']['program_distribution']}")
         else:
             print(f"❌ Overall dashboard failed: {response.status_code}")
             print(f"   Error: {response.text}")
@@ -49,10 +49,10 @@ def test_api():
         response = requests.get(f"{BASE_URL}/dashboard/dusun/Dusun_A")
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Dusun A dashboard: {response.status_code}")
-            print(f"   Participants: {data['summary_metrics']['total_participants']}")
-            print(f"   Participation rate: {data['summary_metrics']['participation_rate']:.1%}")
-            print(f"   Household count: {data['distribution_data']['household_count']}")
+            print(f"✅ Dasbor Dusun A: {response.status_code}")
+            print(f"   Partisipan: {data['summary_metrics']['total_participants']}")
+            print(f"   Tingkat partisipasi: {data['summary_metrics']['participation_rate']:.1%}")
+            print(f"   Jumlah rumah tangga: {data['distribution_data']['household_count']}")
         else:
             print(f"❌ Dusun dashboard failed: {response.status_code}")
             print(f"   Error: {response.text}")
@@ -72,10 +72,10 @@ def test_api():
                 response = requests.get(f"{BASE_URL}/dashboard/household/{first_household}")
                 if response.status_code == 200:
                     data = response.json()
-                    print(f"✅ Household {first_household} dashboard: {response.status_code}")
-                    print(f"   Members: {data['summary_metrics']['total_participants']}")
-                    print(f"   Program participants: {data['summary_metrics']['program_participants']}")
-                    print(f"   Household income: Rp {data['distribution_data']['household_info']['income']:,.0f}")
+                    print(f"✅ Dasbor Rumah Tangga {first_household}: {response.status_code}")
+                    print(f"   Anggota: {data['summary_metrics']['total_participants']}")
+                    print(f"   Partisipan program: {data['summary_metrics']['program_participants']}")
+                    print(f"   Pendapatan rumah tangga: Rp {data['distribution_data']['household_info']['income']:,.0f}")
                 else:
                     print(f"❌ Household dashboard failed: {response.status_code}")
                     print(f"   Error: {response.text}")
@@ -94,7 +94,7 @@ def test_api():
         response = requests.get(f"{BASE_URL}/data/dusuns")
         if response.status_code == 200:
             dusuns = response.json()['dusuns']
-            print(f"✅ Dusuns list: {len(dusuns)} dusuns found")
+            print(f"✅ Daftar dusun: {len(dusuns)} dusun ditemukan")
         else:
             print(f"❌ Dusuns list failed: {response.status_code}")
     except Exception as e:
@@ -105,8 +105,8 @@ def test_api():
         response = requests.get(f"{BASE_URL}/data/programs")
         if response.status_code == 200:
             programs = response.json()['programs']
-            print(f"✅ Programs list: {len(programs)} programs found")
-            print(f"   Programs: {', '.join(programs)}")
+            print(f"✅ Daftar program: {len(programs)} program ditemukan")
+            print(f"   Program: {', '.join(programs)}")
         else:
             print(f"❌ Programs list failed: {response.status_code}")
     except Exception as e:

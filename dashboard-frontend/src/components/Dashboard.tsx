@@ -72,9 +72,9 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+          <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600">Memuat dasbor...</p>
         </div>
       </div>
     )
@@ -83,9 +83,9 @@ export default function Dashboard() {
   if (!data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+          <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Failed to load dashboard data</p>
+          <p className="text-gray-600">Gagal memuat data dasbor</p>
         </div>
       </div>
     )
@@ -102,18 +102,18 @@ export default function Dashboard() {
                 Digital Twin Kesehatan Desa
               </h1>
               <p className="text-gray-600">
-                Village Health Program Management Dashboard
+                Dasbor Manajemen Program Kesehatan Desa
               </p>
             </div>
             <div className="mt-4 sm:mt-0">
-              <select
+      <select
                 value={selectedDusun}
                 onChange={(e) => setSelectedDusun(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {dusuns.map((dusun) => (
                   <option key={dusun} value={dusun}>
-                    {dusun === 'overall' ? 'Overall Village' : dusun}
+        {dusun === 'overall' ? 'Seluruh Dusun' : dusun}
                   </option>
                 ))}
               </select>
@@ -123,29 +123,29 @@ export default function Dashboard() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <MetricCard
-            title="Total Participants"
+            <MetricCard
+            title="Total Partisipan"
             value={data.summary_metrics.total_participants}
             icon={Users}
             color="blue"
             format="number"
           />
           <MetricCard
-            title="Program Participants"
+            title="Partisipan Program"
             value={data.summary_metrics.program_participants}
             icon={Heart}
             color="green"
             format="number"
           />
           <MetricCard
-            title="Participation Rate"
+            title="Tingkat Partisipasi"
             value={data.summary_metrics.participation_rate}
             icon={TrendingUp}
             color="purple"
             format="percentage"
           />
           <MetricCard
-            title="Avg Improvement"
+            title="Rata-rata Perbaikan"
             value={data.summary_metrics.avg_outcome_improvement}
             icon={Activity}
             color="orange"
@@ -156,30 +156,30 @@ export default function Dashboard() {
         {/* Cost Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <MetricCard
-            title="Total Program Cost"
+            title="Total Biaya Program"
             value={data.summary_metrics.total_program_cost}
             icon={TrendingUp}
             color="indigo"
             format="currency"
-            subtitle="Total investment in health programs"
+            subtitle="Total investasi dalam program kesehatan"
           />
           <MetricCard
-            title="Cost per Participant"
+            title="Biaya per Partisipan"
             value={data.summary_metrics.cost_per_participant}
             icon={Users}
             color="emerald"
             format="currency"
-            subtitle="Average cost effectiveness"
+            subtitle="Rata-rata efektivitas biaya"
           />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <ChartCard title="Age Distribution">
+          <ChartCard title="Distribusi Usia">
             <AgeDistributionChart data={data.distribution_data.age_distribution} />
           </ChartCard>
           
-          <ChartCard title="Program Distribution">
+          <ChartCard title="Distribusi Program">
             <ProgramsCard data={data.distribution_data.program_distribution} />
           </ChartCard>
         </div>
@@ -187,7 +187,7 @@ export default function Dashboard() {
         {/* Trends Chart */}
         {data.trends && data.trends.length > 0 && (
           <div className="mb-8">
-            <ChartCard title="Health Outcomes Trends">
+            <ChartCard title="Tren Hasil Kesehatan">
               <TrendsChart data={data.trends} />
             </ChartCard>
           </div>
@@ -198,7 +198,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-              Health Alerts
+              Peringatan Kesehatan
             </h3>
             <div className="space-y-3">
               {data.alerts.map((alert, index) => {

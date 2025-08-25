@@ -333,7 +333,7 @@ export const householdsService = {
 export const programsService = {
   // Mengambil semua data program dengan pagination client-side
   async getAll(page = 1, size = 50): Promise<PaginatedResponse<ProgramRecord>> {
-    const response = await apiFetch(`${API_ENDPOINTS.PROGRAMS}?size=1000`); // Get more data
+    const response = await apiFetch(`${API_ENDPOINTS.PROGRAMS}?limit=10000`); // Get all program data
     const data = await response.json();
     
     if (!Array.isArray(data)) {

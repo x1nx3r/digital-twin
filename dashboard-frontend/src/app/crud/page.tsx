@@ -3,45 +3,43 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import CRUDManagement from "@/components/CRUDManagement";
+import { SpreadsheetCRUD } from "@/components/SpreadsheetCRUD";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 export default function CRUDPage() {
   const router = useRouter();
+  const { isAuthenticated, login } = useAuth();
+
+  const handleAuth = (success: boolean) => {
+    if (success) {
+      login();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-sky-50">
       {/* Header with Navigation */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-blue-200/50 shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push('/')}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Kembali ke Dashboard</span>
-              </Button>
-              
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Manajemen Data CRUD
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Kelola data kesehatan digital twin
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-xl border-b border-blue-200/40 shadow-md rounded-b-xl">
+        <div className="py-4 px-8 flex items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors rounded-lg px-3 py-2 shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 text-blue-700" />
+            <span className="font-medium text-blue-900">Kembali ke Dashboard</span>
+          </Button>
         </div>
       </div>
 
-      {/* CRUD Component */}
-      <div className="p-6">
-        <CRUDManagement />
-      </div>
+      {/* Spreadsheet CRUD Component */}
+      <SpreadsheetCRUD />
     </div>
   );
 }

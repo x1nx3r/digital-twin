@@ -1,14 +1,15 @@
 """
-ML Predictions Module for Digital Twin Health Dashboard
+Modul Prediksi ML untuk Dasbor Kesehatan Digital Twin
 
-This module provides health outcome predictions using simple but effective
-statistical and ML approaches that work without extensive pre-training.
+Modul ini menyediakan prediksi hasil kesehatan menggunakan pendekatan
+statistik sederhana dan model ML dasar yang dapat bekerja tanpa pelatihan
+ekstensif.
 
-Features:
-- Blood pressure progression prediction
-- HAZ score trajectory prediction  
-- Risk scoring and early warning
-- Treatment response estimation
+Fitur:
+- Prediksi perkembangan tekanan darah
+- Prediksi trajektori skor HAZ
+- Skor risiko populasi dan peringatan dini
+- Estimasi respons pengobatan
 """
 
 import pandas as pd
@@ -23,8 +24,8 @@ warnings.filterwarnings('ignore')
 
 class HealthOutcomePredictor:
     """
-    Simple but effective health outcome predictor using statistical methods
-    and basic ML models. No extensive training required - works out of the box.
+    Prediktor hasil kesehatan sederhana yang efektif menggunakan metode statistik
+    dan model ML dasar. Tidak memerlukan pelatihan ekstensif - siap pakai.
     """
     
     def __init__(self):
@@ -34,9 +35,10 @@ class HealthOutcomePredictor:
         
     def predict_bp_progression(self, person_data: pd.DataFrame, months_ahead: int = 6) -> Dict[str, Any]:
         """
-        Predict blood pressure progression for an individual
-        
-        Uses trend analysis + clinical knowledge without requiring pre-trained models
+        Prediksi perkembangan tekanan darah untuk individu
+
+        Menggunakan analisis tren dan pengetahuan klinis tanpa memerlukan model
+        yang sudah dilatih.
         """
         try:
             # Sort by date to get progression
@@ -102,16 +104,16 @@ class HealthOutcomePredictor:
             }
             
         except Exception as e:
-            print(f"Error predicting BP progression: {e}")
+            print(f"Kesalahan memprediksi perkembangan tekanan darah: {e}")
             # Fallback to heuristic prediction
             latest = person_data.iloc[-1]
             return self._predict_bp_heuristic(latest, months_ahead)
     
     def predict_haz_progression(self, child_data: pd.DataFrame, months_ahead: int = 6) -> Dict[str, Any]:
         """
-        Predict HAZ score progression for a child
-        
-        Uses growth velocity analysis + WHO growth standards
+        Prediksi perkembangan skor HAZ untuk anak
+
+        Menggunakan analisis kecepatan pertumbuhan dan standar pertumbuhan WHO
         """
         try:
             child_data = child_data.sort_values('date')
@@ -168,15 +170,15 @@ class HealthOutcomePredictor:
             }
             
         except Exception as e:
-            print(f"Error predicting HAZ progression: {e}")
+            print(f"Kesalahan memprediksi perkembangan HAZ: {e}")
             latest = child_data.iloc[-1]
             return self._predict_haz_heuristic(latest, months_ahead)
     
     def calculate_risk_scores(self, population_data: pd.DataFrame, data_type: str = 'adults') -> Dict[str, Any]:
         """
-        Calculate ML-enhanced risk scores for population
-        
-        Uses ensemble of statistical methods and clinical rules
+        Hitung skor risiko populasi dengan peningkatan ML
+
+        Menggunakan gabungan metode statistik dan aturan klinis
         """
         try:
             if data_type == 'adults':
@@ -185,7 +187,7 @@ class HealthOutcomePredictor:
                 return self._calculate_child_risk_scores(population_data)
                 
         except Exception as e:
-            print(f"Error calculating risk scores: {e}")
+            print(f"Kesalahan menghitung skor risiko: {e}")
             return {'error': str(e)}
     
     # ===== HELPER METHODS =====
@@ -350,8 +352,17 @@ class HealthOutcomePredictor:
             
         risk_score = min(1, risk_score)
         
+        # Human-readable label (Indonesian) while keeping programmatic 'risk_level'
+        risk_label_map = {
+            'very_high': 'Sangat Tinggi',
+            'high': 'Tinggi',
+            'moderate': 'Sedang',
+            'low': 'Rendah'
+        }
+
         return {
             'risk_level': risk_level,
+            'risk_label': risk_label_map.get(risk_level, risk_level),
             'risk_score': round(risk_score, 3),
             'category': self._get_bp_category(systolic, diastolic)
         }
@@ -405,25 +416,25 @@ class HealthOutcomePredictor:
                 'diastolic': [predicted_dia - 10, predicted_dia + 10]
             },
             'method': 'heuristic',
-            'recommendations': ['Regular monitoring recommended', 'Consider lifestyle modifications']
+            'recommendations': ['Disarankan pemantauan rutin', 'Pertimbangkan perubahan gaya hidup']
         }
     
     def _predict_haz_heuristic(self, latest_data: pd.Series, months_ahead: int) -> Dict[str, Any]:
         """Fallback HAZ prediction using growth heuristics"""
-        
+
         current_haz = latest_data.get('HAZ', -1)
         age_months = latest_data.get('usia_bulan', 24)
-        
+
         # Heuristic: assume slight improvement with age if on program
         on_program = latest_data.get('on_program', 0)
-        
+
         if on_program and age_months < 36:
             # Assume program helps
             predicted_haz = current_haz + (months_ahead * 0.05)
         else:
             # Assume stable or slight decline
             predicted_haz = current_haz - (months_ahead * 0.02)
-        
+
         return {
             'child_id': latest_data.get('child_id', 'unknown'),
             'current_status': {
@@ -437,20 +448,20 @@ class HealthOutcomePredictor:
                 'stunting_risk': 'high' if predicted_haz < -2 else 'low'
             },
             'method': 'heuristic',
-            'recommendations': ['Monitor growth regularly', 'Ensure adequate nutrition']
+            'recommendations': ['Pantau pertumbuhan secara rutin', 'Pastikan asupan gizi memadai']
         }
     
     def _get_bp_category(self, systolic: float, diastolic: float) -> str:
         """Get BP category based on WHO/JNC guidelines"""
         
         if systolic >= 180 or diastolic >= 110:
-            return 'Stage 3 Hypertension (Severe)'
+            return 'Hipertensi Tahap 3 (Parah)'
         elif systolic >= 160 or diastolic >= 100:
-            return 'Stage 2 Hypertension'
+            return 'Hipertensi Tahap 2'
         elif systolic >= 140 or diastolic >= 90:
-            return 'Stage 1 Hypertension'
+            return 'Hipertensi Tahap 1'
         elif systolic >= 130 or diastolic >= 85:
-            return 'High Normal'
+            return 'Tinggi Normal'
         elif systolic >= 120 or diastolic >= 80:
             return 'Normal'
         else:
@@ -474,26 +485,26 @@ class HealthOutcomePredictor:
         recommendations = []
         
         if prediction['systolic'] >= 160:
-            recommendations.append('Urgent medical consultation needed')
-            recommendations.append('Consider hospitalization if symptomatic')
+            recommendations.append('Segera konsultasi medis diperlukan')
+            recommendations.append('Pertimbangkan rawat inap jika bergejala')
         elif prediction['systolic'] >= 140:
-            recommendations.append('Intensify antihypertensive treatment')
-            recommendations.append('Monitor BP weekly')
+            recommendations.append('Tingkatkan pengobatan antihipertensi')
+            recommendations.append('Pantau tekanan darah setiap minggu')
         
         if not features['on_treatment'] and prediction['systolic'] >= 140:
-            recommendations.append('Initiate antihypertensive medication')
-        
+            recommendations.append('Mulai pengobatan antihipertensi')
+
         if features['smoking']:
-            recommendations.append('Smoking cessation counseling - high priority')
-        
+            recommendations.append('Konseling berhenti merokok - prioritas tinggi')
+
         if features['diabetes']:
-            recommendations.append('Optimize diabetes management')
-            recommendations.append('Target BP <130/80 mmHg')
-        
+            recommendations.append('Optimalkan manajemen diabetes')
+            recommendations.append('Target tekanan darah <130/80 mmHg')
+
         if features['adherence'] < 0.8:
-            recommendations.append('Improve medication adherence through education')
-        
-        recommendations.append('Regular physical activity and diet modification')
+            recommendations.append('Tingkatkan kepatuhan pengobatan melalui edukasi')
+
+        recommendations.append('Aktivitas fisik teratur dan modifikasi pola makan')
         
         return recommendations
     
@@ -503,29 +514,29 @@ class HealthOutcomePredictor:
         recommendations = []
         
         if prediction['haz'] < -3:
-            recommendations.append('Urgent nutrition intervention required')
-            recommendations.append('Consider therapeutic feeding program')
+            recommendations.append('Intervensi gizi mendesak diperlukan')
+            recommendations.append('Pertimbangkan program pemberian makan terapeutik')
         elif prediction['haz'] < -2:
-            recommendations.append('Intensive nutrition support needed')
-            recommendations.append('Monitor growth monthly')
+            recommendations.append('Diperlukan dukungan gizi intensif')
+            recommendations.append('Pantau pertumbuhan setiap bulan')
         
         if features['age_months'] < 24:
-            recommendations.append('Focus on first 1000 days - critical window')
-        
+            recommendations.append('Fokus pada 1000 hari pertama - periode kritis')
+
         if not features['exclusive_bf'] and features['age_months'] < 6:
-            recommendations.append('Promote exclusive breastfeeding')
-        
+            recommendations.append('Promosikan pemberian ASI eksklusif')
+
         if not features['complementary_feeding'] and features['age_months'] >= 6:
-            recommendations.append('Improve complementary feeding practices')
-        
+            recommendations.append('Perbaiki praktik pemberian makanan pendamping ASI')
+
         if features['hemoglobin'] < 11:
-            recommendations.append('Address anemia through iron supplementation')
-        
+            recommendations.append('Atasi anemia dengan suplementasi zat besi')
+
         if not features['clean_water'] or not features['sanitation']:
-            recommendations.append('Improve WASH conditions to prevent infections')
-        
+            recommendations.append('Perbaiki kondisi WASH untuk mencegah infeksi')
+
         if not features['on_program']:
-            recommendations.append('Enroll in nutrition support program')
+            recommendations.append('Daftarkan pada program dukungan gizi')
         
         return recommendations
 

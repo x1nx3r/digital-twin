@@ -146,10 +146,10 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
       <Card>
         <CardContent className="p-8">
           <div className="flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Analyzing risk factors...</p>
-            </div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Menganalisis faktor risiko...</p>
+          </div>
           </div>
         </CardContent>
       </Card>
@@ -162,7 +162,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
         <CardContent className="p-8">
           <div className="text-center">
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 font-medium">Error loading risk factors</p>
+            <p className="text-red-600 font-medium">Kesalahan memuat faktor risiko</p>
             <p className="text-gray-600 text-sm mt-2">{error}</p>
           </div>
         </CardContent>
@@ -228,13 +228,13 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                 transition={{ duration: 0.5 }}
               >
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Target className="h-5 w-5 text-red-600" />
-                      <span>Ikhtisar Analisis Risiko Hipertensi</span>
-                      <Badge variant="outline">{hypertensionData.analysis_period.period_label}</Badge>
-                    </CardTitle>
-                  </CardHeader>
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Target className="h-5 w-5 text-red-600" />
+                            <span>Ikhtisar Analisis Risiko Hipertensi</span>
+                            <Badge variant="outline">{hypertensionData.analysis_period.period_label}</Badge>
+                          </CardTitle>
+                        </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center">
@@ -247,7 +247,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                         <div className="text-2xl font-bold text-red-600">
                           {hypertensionData.population_metrics.affected_population}
                         </div>
-                        <div className="text-sm text-gray-600">Terdampak</div>
+                        <div className="text-sm text-gray-600">Jumlah Terdampak</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
@@ -270,7 +270,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <BarChart3 className="h-5 w-5 text-red-600" />
-                      <span>Faktor Resiko yang Teridentifikasi</span>
+                      <span>Faktor Risiko yang Teridentifikasi</span>
                       <Badge>{hypertensionData.risk_factors.length} faktor</Badge>
                     </CardTitle>
                   </CardHeader>
@@ -296,7 +296,7 @@ export function RiskFactorsAnalysis({ selectedTimePeriod }: RiskFactorsAnalysisP
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Activity className="h-5 w-5 text-blue-600" />
-                      <span>Primary Modifiable Factors</span>
+                      <span>Faktor Utama yang Dapat Dimodifikasi</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
