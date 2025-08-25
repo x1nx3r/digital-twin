@@ -42,13 +42,12 @@ interface EditableCell {
   originalValue: string | number | boolean | null;
 }
 
-interface SpreadsheetCRUDProps {
-  onClose?: () => void;
-}
+// component has no props
 
-type AnyRecord = { [key: string]: any };
+// pending-row shape alias
+// helper alias removed (not used)
 
-export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
+export function SpreadsheetCRUD() {
   const [activeTab, setActiveTab] = useState("adults");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,7 +72,8 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
   // Editing states
   const [editingCells, setEditingCells] = useState<{[key: string]: EditableCell}>({});
   const [hasChanges, setHasChanges] = useState(false);
-  const [newRows, setNewRows] = useState<Record<string, any>>({});
+  // newRows stores pending new-row objects keyed by temporary id. Use unknown-records to avoid explicit any.
+  const [newRows, setNewRows] = useState<Record<string, Record<string, unknown>>>({});
 
   // Fetch data - get all longitudinal data
   const fetchData = useCallback(async () => {
@@ -199,25 +199,26 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
       if (activeTab === "adults") {
         const updatedRecord = Array.isArray(adults) ? adults.find(a => a.person_id === rowId) : null;
         if (updatedRecord) {
-  (updatedRecord as AnyRecord)[field] = cellData.value;
+          // assign dynamically in a type-safe way
+          (updatedRecord as unknown as Record<string, unknown>)[field] = cellData.value as unknown;
           await adultsService.update(rowId, updatedRecord);
         }
       } else if (activeTab === "children") {
         const updatedRecord = Array.isArray(children) ? children.find(c => c.child_id === rowId) : null;
         if (updatedRecord) {
-  (updatedRecord as AnyRecord)[field] = cellData.value;
+          (updatedRecord as unknown as Record<string, unknown>)[field] = cellData.value as unknown;
           await childrenService.update(rowId, updatedRecord);
         }
       } else if (activeTab === "households") {
         const updatedRecord = Array.isArray(households) ? households.find(h => h.household_id === rowId) : null;
         if (updatedRecord) {
-  (updatedRecord as AnyRecord)[field] = cellData.value;
+          (updatedRecord as unknown as Record<string, unknown>)[field] = cellData.value as unknown;
           await householdsService.update(rowId, updatedRecord);
         }
       } else if (activeTab === "programs") {
         const updatedRecord = Array.isArray(programs) ? programs.find(p => p.id?.toString() === rowId) : null;
         if (updatedRecord) {
-          (updatedRecord as AnyRecord)[field] = cellData.value;
+          (updatedRecord as unknown as Record<string, unknown>)[field] = cellData.value as unknown;
           await programsService.update(rowId, updatedRecord);
         }
       }
@@ -292,21 +293,22 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
           const latest = records[0];
           if (!latest) return;
           const newRecord = { ...latest, date: new Date().toISOString() } as AdultCreate;
-          delete (newRecord as any).id;
+          // remove id if present before creating
+          delete (newRecord as unknown as Record<string, unknown>)['id'];
           await adultsService.create(newRecord);
         } else if (type === 'children') {
           const records = groupedChildren.get(id) || [];
           const latest = records[0];
           if (!latest) return;
           const newRecord = { ...latest, date: new Date().toISOString() } as ChildCreate;
-          delete (newRecord as any).id;
+          delete (newRecord as unknown as Record<string, unknown>)['id'];
           await childrenService.create(newRecord);
         } else if (type === 'programs') {
           const records = groupedPrograms.get(id) || [];
           const latest = records[0];
           if (!latest) return;
           const newRecord = { ...latest, tanggal: new Date().toISOString() } as ProgramCreate;
-          delete (newRecord as any).id;
+          delete (newRecord as unknown as Record<string, unknown>)['id'];
           await programsService.create(newRecord);
         }
         await fetchData();
@@ -378,6 +380,14 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
     });
   };
 
+  // Helper to update a field on a pending new row
+  const setNewRowField = (newId: string, key: string, value: unknown) => {
+    setNewRows(prev => ({
+      ...prev,
+      [newId]: { ...(prev[newId] || {}), [key]: value }
+    }));
+  };
+
   const saveNewRow = async (newId: string) => {
     const newRow = newRows[newId];
     if (!newRow) return;
@@ -385,13 +395,13 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
     try {
       setSaving(true);
       if (activeTab === "adults") {
-        await adultsService.create(newRow as AdultCreate);
+        await adultsService.create(newRow as unknown as AdultCreate);
       } else if (activeTab === "children") {
-        await childrenService.create(newRow as ChildCreate);
+        await childrenService.create(newRow as unknown as ChildCreate);
       } else if (activeTab === "households") {
-        await householdsService.create(newRow as HouseholdCreate);
+        await householdsService.create(newRow as unknown as HouseholdCreate);
       } else if (activeTab === "programs") {
-        await programsService.create(newRow as ProgramCreate);
+        await programsService.create(newRow as unknown as ProgramCreate);
       }
 
       // Remove from new rows and refresh data
@@ -465,13 +475,13 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
           <Input
             type={type === 'number' ? 'number' : type === 'date' ? 'datetime-local' : 'text'}
             value={typeof displayValue === 'boolean' ? (displayValue ? 'true' : 'false') : (displayValue ?? '').toString()}
-            onChange={(e) => updateCellValue(rowId, field, type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+            onChange={(e) => updateCellValue(rowId, field, type === 'number' ? parseFloat((e.target as HTMLInputElement).value) : (e.target as HTMLInputElement).value)}
             className="h-8 text-xs"
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if ((e as React.KeyboardEvent).key === 'Enter') {
                 saveCell(rowId, field);
-              } else if (e.key === 'Escape') {
+              } else if ((e as React.KeyboardEvent).key === 'Escape') {
                 cancelEdit(rowId, field);
               }
             }}
@@ -554,9 +564,8 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent">
-                  Manajemen Data Penduduk
+                  Manajemen Spreadsheet
                 </CardTitle>
-                <p className="text-blue-600 mt-1">Edit data langsung dalam tampilan spreadsheet</p>
               </div>
               <div className="flex items-center space-x-2">
                 {hasChanges && (
@@ -657,165 +666,135 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                       </thead>
                       <tbody className="divide-y divide-blue-100">
                         {/* New rows */}
-                        {Object.entries(newRows).filter(() => activeTab === "adults").map(([newId, newRow]) => (
-                          <tr key={newId} className="hover:bg-blue-50/50 bg-green-50/30">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center justify-center">
-                                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                  <Plus className="h-2 w-2 text-white" />
+                        {Object.entries(newRows).filter(() => activeTab === "adults").map(([newId, newRow]) => {
+                          const nr = newRow as unknown as Record<string, unknown>;
+                          return (
+                            <tr key={newId} className="hover:bg-blue-50/50 bg-green-50/30">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-center">
+                                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                    <Plus className="h-2 w-2 text-white" />
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                value={(newRow as any).person_id || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], person_id: e.target.value }
-                                }))}
-                                placeholder="ID Orang"
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                value={(newRow as any).household_id || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], household_id: e.target.value }
-                                }))}
-                                placeholder="ID RT"
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="datetime-local"
-                                value={(newRow as any).date ? new Date((newRow as any).date).toISOString().slice(0, 16) : ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], date: e.target.value }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={(newRow as any).month || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], month: parseInt(e.target.value) }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={(newRow as any).age || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], age: parseInt(e.target.value) }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={(newRow as any).sistol || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], sistol: parseFloat(e.target.value) }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={(newRow as any).diastol || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], diastol: parseFloat(e.target.value) }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-center">
-                                <Checkbox
-                                  checked={(newRow as any).on_treatment || false}
-                                  onChange={(e) => setNewRows(prev => ({
-                                    ...prev,
-                                    [newId]: { ...prev[newId], on_treatment: e.target.checked }
-                                  }))}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  value={(nr['person_id'] as string) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'person_id', (e.target as HTMLInputElement).value)}
+                                  placeholder="ID Orang"
+                                  className="h-8 text-xs"
                                 />
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-center">
-                                <Checkbox
-                                  checked={(newRow as any).diabetes_koin || false}
-                                  onChange={(e) => setNewRows(prev => ({
-                                    ...prev,
-                                    [newId]: { ...prev[newId], diabetes_koin: e.target.checked }
-                                  }))}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  value={(nr['household_id'] as string) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'household_id', (e.target as HTMLInputElement).value)}
+                                  placeholder="ID RT"
+                                  className="h-8 text-xs"
                                 />
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-center">
-                                <Checkbox
-                                  checked={(newRow as any).perokok || false}
-                                  onChange={(e) => setNewRows(prev => ({
-                                    ...prev,
-                                    [newId]: { ...prev[newId], perokok: e.target.checked }
-                                  }))}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="datetime-local"
+                                  value={nr['date'] ? new Date(nr['date'] as string).toISOString().slice(0, 16) : ''}
+                                  onChange={(e) => setNewRowField(newId, 'date', (e.target as HTMLInputElement).value)}
+                                  className="h-8 text-xs"
                                 />
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={(newRow as any).adherence_current || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], adherence_current: parseFloat(e.target.value) }
-                                }))}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex space-x-1">
-                                <Button
-                                  size="sm"
-                                  onClick={() => saveNewRow(newId)}
-                                  disabled={saving}
-                                  className="h-6 w-6 p-0 bg-green-600 hover:bg-green-700"
-                                >
-                                  <Save className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => cancelNewRow(newId)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  value={(nr['month'] as number) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'month', parseInt((e.target as HTMLInputElement).value))}
+                                  className="h-8 text-xs"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  value={(nr['age'] as number) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'age', parseInt((e.target as HTMLInputElement).value))}
+                                  className="h-8 text-xs"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  value={(nr['sistol'] as number) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'sistol', parseFloat((e.target as HTMLInputElement).value))}
+                                  className="h-8 text-xs"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  value={(nr['diastol'] as number) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'diastol', parseFloat((e.target as HTMLInputElement).value))}
+                                  className="h-8 text-xs"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-center">
+                                  <Checkbox
+                                    checked={(nr['on_treatment'] as boolean) || false}
+                                    onChange={(e) => setNewRowField(newId, 'on_treatment', (e.target as HTMLInputElement).checked)}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-center">
+                                  <Checkbox
+                                    checked={(nr['diabetes_koin'] as boolean) || false}
+                                    onChange={(e) => setNewRowField(newId, 'diabetes_koin', (e.target as HTMLInputElement).checked)}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-center">
+                                  <Checkbox
+                                    checked={(nr['perokok'] as boolean) || false}
+                                    onChange={(e) => setNewRowField(newId, 'perokok', (e.target as HTMLInputElement).checked)}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={(nr['adherence_current'] as number) || ''}
+                                  onChange={(e) => setNewRowField(newId, 'adherence_current', parseFloat((e.target as HTMLInputElement).value))}
+                                  className="h-8 text-xs"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex space-x-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => saveNewRow(newId)}
+                                    disabled={saving}
+                                    className="h-6 w-6 p-0 bg-green-600 hover:bg-green-700"
+                                  >
+                                    <Save className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => cancelNewRow(newId)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                         
                         {/* Existing adults rows - Longitudinal Data with Enhanced Styling */}
                         {filteredAdultsGrouped.map(([personId, records]) => {
                           const latestRecord = records[0];
                           const isExpanded = expandedRows.has(personId);
-                          const recordCount = records.length;
+                          // const recordCount = records.length;
                           return (
                             <React.Fragment key={personId}>
                               {/* Main row showing latest record with correct alignment */}
@@ -856,7 +835,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                                 {/* Perokok */}
                                 <td className="px-4 py-3 text-sm">{renderEditableCell(latestRecord.id?.toString() || '', 'perokok', latestRecord.perokok, 'boolean')}</td>
                                 {/* Kepatuhan */}
-                                <td className="px-4 py-3 text-sm">{renderEditableCell(latestRecord.id?.toString() || '', 'adherence_current', latestRecord.adherence_current, 'number')}</td>
+                                <td className="px-4 py-3 text-sm">{renderEditableCell(latestRecord.id?.toString() || '', 'adherence_current', latestRecord.adherence_current ?? null, 'number')}</td>
                                 {/* Aksi */}
                                 <td className="px-4 py-3">
                                   <div className="flex space-x-1">
@@ -933,11 +912,13 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                       </thead>
                       <tbody className="divide-y divide-blue-100">
                         {/* New rows for children */}
-                        {Object.entries(newRows).filter(() => activeTab === "children").map(([newId, newRow]) => (
+                        {Object.entries(newRows).filter(() => activeTab === "children").map(([newId, newRow]) => {
+                          const nr = newRow as unknown as Record<string, unknown>;
+                          return (
                           <tr key={newId} className="hover:bg-blue-50/50 bg-green-50/30">
                             <td className="px-4 py-3">
                               <Input
-                                value={newRow.child_id || ''}
+                                value={(nr['child_id'] as string) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], child_id: e.target.value }
@@ -948,7 +929,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             </td>
                             <td className="px-4 py-3">
                               <Input
-                                value={newRow.household_id || ''}
+                                value={(nr['household_id'] as string) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], household_id: e.target.value }
@@ -960,7 +941,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <Input
                                 type="datetime-local"
-                                value={newRow.date ? new Date(newRow.date).toISOString().slice(0, 16) : ''}
+                                value={nr['date'] ? new Date(nr['date'] as string).toISOString().slice(0, 16) : ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], date: e.target.value }
@@ -971,7 +952,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <Input
                                 type="number"
-                                value={newRow.month || ''}
+                                value={(nr['month'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], month: parseInt(e.target.value) }
@@ -982,7 +963,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <Input
                                 type="number"
-                                value={newRow.usia_bulan || ''}
+                                value={(nr['usia_bulan'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], usia_bulan: parseInt(e.target.value) }
@@ -994,7 +975,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               <Input
                                 type="number"
                                 step="0.001"
-                                value={newRow.HAZ || ''}
+                                value={(nr['HAZ'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], HAZ: parseFloat(e.target.value) }
@@ -1005,7 +986,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.on_program || false}
+                                  checked={(nr['on_program'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], on_program: e.target.checked }
@@ -1017,7 +998,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               <Input
                                 type="number"
                                 step="0.1"
-                                value={newRow.anemia_hb_gdl || ''}
+                                value={(nr['anemia_hb_gdl'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], anemia_hb_gdl: e.target.value ? parseFloat(e.target.value) : null }
@@ -1029,7 +1010,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.air_bersih || false}
+                                  checked={(nr['air_bersih'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], air_bersih: e.target.checked }
@@ -1040,7 +1021,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.jamban_sehat || false}
+                                  checked={(nr['jamban_sehat'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], jamban_sehat: e.target.checked }
@@ -1052,7 +1033,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               <Input
                                 type="number"
                                 step="0.001"
-                                value={newRow.haz_change_this_month || ''}
+                                value={(nr['haz_change_this_month'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], haz_change_this_month: parseFloat(e.target.value) }
@@ -1085,7 +1066,8 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
 
                         {/* Existing children rows - Longitudinal Data with Expand/Collapse */}
                         {filteredChildrenGrouped.map(([childId, records]) => {
@@ -1195,11 +1177,13 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                       </thead>
                       <tbody className="divide-y divide-blue-100">
                         {/* New rows for households */}
-                        {Object.entries(newRows).filter(() => activeTab === "households").map(([newId, newRow]) => (
+                        {Object.entries(newRows).filter(() => activeTab === "households").map(([newId, newRow]) => {
+                          const nr = newRow as unknown as Record<string, unknown>;
+                          return (
                           <tr key={newId} className="hover:bg-blue-50/50 bg-green-50/30">
                             <td className="px-4 py-3">
                               <Input
-                                value={newRow.household_id || ''}
+                                value={(nr['household_id'] as string) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], household_id: e.target.value }
@@ -1211,7 +1195,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <Input
                                 type="number"
-                                value={newRow.pendapatan_rt || ''}
+                                value={(nr['pendapatan_rt'] as number) || ''}
                                 onChange={(e) => setNewRows(prev => ({
                                   ...prev,
                                   [newId]: { ...prev[newId], pendapatan_rt: parseFloat(e.target.value) }
@@ -1223,7 +1207,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.kepemilikan_rumah || false}
+                                  checked={(nr['kepemilikan_rumah'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], kepemilikan_rumah: e.target.checked }
@@ -1234,7 +1218,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.akses_listrik || false}
+                                  checked={(nr['akses_listrik'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], akses_listrik: e.target.checked }
@@ -1245,7 +1229,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-3">
                               <div className="flex justify-center">
                                 <Checkbox
-                                  checked={newRow.akses_internet || false}
+                                  checked={(nr['akses_internet'] as boolean) || false}
                                   onChange={(e) => setNewRows(prev => ({
                                     ...prev,
                                     [newId]: { ...prev[newId], akses_internet: e.target.checked }
@@ -1278,16 +1262,17 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
 
                         {/* Existing household rows */}
                         {filteredHouseholds.map((household) => (
                           <tr key={household.household_id} className="hover:bg-blue-50/50">
                             <td className="px-4 py-3 text-sm font-medium">{household.household_id}</td>
-                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'pendapatan_rt', household.pendapatan_rt, 'number')}</td>
-                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'kepemilikan_rumah', household.kepemilikan_rumah, 'boolean')}</td>
-                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'akses_listrik', household.akses_listrik, 'boolean')}</td>
-                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'akses_internet', household.akses_internet, 'boolean')}</td>
+                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'pendapatan_rt', household.pendapatan_rt ?? null, 'number')}</td>
+                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'kepemilikan_rumah', household.kepemilikan_rumah ?? null, 'boolean')}</td>
+                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'akses_listrik', household.akses_listrik ?? null, 'boolean')}</td>
+                            <td className="px-4 py-3 text-sm">{renderEditableCell(household.household_id, 'akses_internet', household.akses_internet ?? null, 'boolean')}</td>
                             <td className="px-4 py-3">
                               <Button
                                 size="sm"
@@ -1326,7 +1311,9 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                       </thead>
                       <tbody className="bg-white divide-y divide-blue-100">
                         {/* New Program Row */}
-                        {Object.entries(newRows).filter(() => activeTab === "programs").map(([newId, newRow]) => (
+                        {Object.entries(newRows).filter(() => activeTab === "programs").map(([newId, newRow]) => {
+                          const nr = newRow as unknown as Record<string, unknown>;
+                          return (
                           <tr key={newId} className="bg-green-50/50 border-l-4 border-green-400">
                             <td className="px-4 py-2 text-sm text-gray-500">
                               <div className="flex items-center justify-center">
@@ -1335,44 +1322,32 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                             <td className="px-4 py-2">
                               <Input
                                 placeholder="Target ID"
-                                value={(newRow as any).target_id || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], target_id: e.target.value }
-                                }))}
+                                value={(nr['target_id'] as string) || ''}
+                                onChange={(e) => setNewRowField(newId, 'target_id', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
                             <td className="px-4 py-2">
                               <Input
                                 placeholder="Nama program"
-                                value={(newRow as any).program || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], program: e.target.value }
-                                }))}
+                                value={(nr['program'] as string) || ''}
+                                onChange={(e) => setNewRowField(newId, 'program', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
                             <td className="px-4 py-2">
                               <Input
                                 placeholder="Household ID"
-                                value={(newRow as any).household_id || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], household_id: e.target.value }
-                                }))}
+                                value={(nr['household_id'] as string) || ''}
+                                onChange={(e) => setNewRowField(newId, 'household_id', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
                             <td className="px-4 py-2">
                               <Input
                                 type="datetime-local"
-                                value={(newRow as any).tanggal ? new Date((newRow as any).tanggal).toISOString().slice(0, 16) : ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], tanggal: e.target.value }
-                                }))}
+                                value={nr['tanggal'] ? new Date(nr['tanggal'] as string).toISOString().slice(0, 16) : ''}
+                                onChange={(e) => setNewRowField(newId, 'tanggal', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
@@ -1380,33 +1355,24 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               <Input
                                 type="number"
                                 placeholder="Biaya riil"
-                                value={(newRow as any).biaya_riil || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], biaya_riil: parseFloat(e.target.value) || 0 }
-                                }))}
+                                value={(nr['biaya_riil'] as number) || ''}
+                                onChange={(e) => setNewRowField(newId, 'biaya_riil', parseFloat((e.target as HTMLInputElement).value) || 0)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
                             <td className="px-4 py-2">
                               <Input
                                 placeholder="Status"
-                                value={(newRow as any).status || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], status: e.target.value }
-                                }))}
+                                value={(nr['status'] as string) || ''}
+                                onChange={(e) => setNewRowField(newId, 'status', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
                             <td className="px-4 py-2">
                               <Input
                                 placeholder="Deskripsi"
-                                value={(newRow as any).description || ''}
-                                onChange={(e) => setNewRows(prev => ({
-                                  ...prev,
-                                  [newId]: { ...prev[newId], description: e.target.value }
-                                }))}
+                                value={(nr['description'] as string) || ''}
+                                onChange={(e) => setNewRowField(newId, 'description', (e.target as HTMLInputElement).value)}
                                 className="border-blue-200 focus:border-blue-400"
                               />
                             </td>
@@ -1431,7 +1397,7 @@ export function SpreadsheetCRUD(_props: SpreadsheetCRUDProps) {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        )})}
 
                         {/* Existing Programs - Longitudinal Data with Enhanced Styling */}
                         {filteredProgramsGrouped.map(([targetId, records]) => {
