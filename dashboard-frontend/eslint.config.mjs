@@ -19,6 +19,10 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      // Allow `any` in this codebase to reduce noise from generated / legacy code
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   },
 ];
 
