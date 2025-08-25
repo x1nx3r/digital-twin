@@ -1,30 +1,3 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { Users, TrendingUp, DollarSign } from 'lucide-react'
-import MetricCard from './MetricCard'
-import ChartCard from './ChartCard'
-import { LoadingState, ErrorState } from './LoadingStates'
-import { apiFetch, API_ENDPOINTS } from '@/lib/api'
-
-interface HouseholdData {
-  summary_metrics: {
-    household_members: number
-    program_participants: number
-    participation_rate: number
-    avg_outcome_improvement: number
-    total_program_cost: number
-    household_income: number
-  }
-  members: Array<{
-    person_id: string
-    name: string
-    age: number
-    gender: string
-    health_condition: string
-    programs: string[]
-  }>
-}
 
  'use client'
 
