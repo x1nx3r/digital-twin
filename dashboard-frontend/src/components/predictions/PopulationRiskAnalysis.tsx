@@ -403,10 +403,7 @@ export function PopulationRiskAnalysis({ selectedRegion = "all", populationType 
                         <span className="text-gray-600">Populasi:</span>
                         <span className="ml-2 font-medium">{region.population.toLocaleString()}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Prevalensi:</span>
-                        <span className="ml-2 font-medium">{region.prevalence}%</span>
-                      </div>
+
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
