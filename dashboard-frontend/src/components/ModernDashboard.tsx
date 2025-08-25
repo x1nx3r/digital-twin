@@ -314,7 +314,7 @@ export default function ModernDashboard() {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <Card className="bg-white/70 backdrop-blur-lg shadow-xl border border-blue-200/50">
-            <CardHeader className="bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border-b border-blue-200/50">
+            <CardHeader className=" border-blue-200/50">
               <CardTitle className="flex items-center space-x-2">
                 <Activity className="h-5 w-5 text-blue-600" />
                 <span className="bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent">Ringkasan Program Keseluruhan</span>
@@ -412,7 +412,7 @@ export default function ModernDashboard() {
               </div>
 
               {/* Hypertension Charts */}
-              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50 p-6">
                 <HypertensionCharts
                   ageDistribution={dashboardData.hypertension_section.age_distribution}
                   trends={dashboardData.hypertension_section.trends}
@@ -448,7 +448,7 @@ export default function ModernDashboard() {
               </div>
 
               {/* Stunting Charts */}
-              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+              <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50 p-6">
                 <StuntingCharts
                   ageDistribution={dashboardData.stunting_section.age_distribution}
                   trends={dashboardData.stunting_section.trends}
@@ -461,14 +461,14 @@ export default function ModernDashboard() {
               <>
                 <TabsContent value="risk-factors" className="space-y-6">
                   {/* Risk Factors Analysis */}
-                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50 p-6">
                     <RiskFactorsAnalysis selectedTimePeriod={selectedTimePeriod} />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="predictions" className="space-y-6">
                   {/* AI Predictions */}
-                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50">
+                  <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-200/50 p-6">
                     <PredictionDashboard />
                   </div>
                 </TabsContent>
@@ -485,7 +485,7 @@ export default function ModernDashboard() {
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <Card className="border-orange-200/50 bg-gradient-to-r from-orange-50/80 to-yellow-50/80 backdrop-blur-lg shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-orange-600/10 to-yellow-600/10 border-b border-orange-200/50">
+              <CardHeader className=" border-orange-200/50">
                 <CardTitle className="flex items-center space-x-2 text-orange-800">
                   <AlertCircle className="h-5 w-5" />
                   <span>Peringatan Sistem</span>
