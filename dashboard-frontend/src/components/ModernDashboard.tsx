@@ -188,7 +188,7 @@ export default function ModernDashboard() {
         selectedHousehold={selectedHousehold}
         alerts={[]}
       >
-        <div className="flex items-center justify-center h-full min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="flex items-center justify-center h-full min-h-screen">
           <div className="text-center bg-white/80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-blue-200/50">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
             <p className="text-blue-800 font-medium">Memuat data dashboard...</p>
@@ -207,7 +207,7 @@ export default function ModernDashboard() {
         selectedHousehold={selectedHousehold}
         alerts={[]}
       >
-        <div className="flex items-center justify-center h-full min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="flex items-center justify-center h-full min-h-screen">
           <div className="text-center bg-white/80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-red-200/50">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-600 font-medium">Gagal memuat dashboard</p>
@@ -234,7 +234,7 @@ export default function ModernDashboard() {
       selectedHousehold={selectedHousehold}
       alerts={dashboardData.alerts}
     >
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 space-y-6">
+      <div className="min-h-screen p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -477,39 +477,8 @@ export default function ModernDashboard() {
           </Tabs>
         </motion.div>
 
-        {/* Alerts Section */}
-        {dashboardData.alerts.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <Card className="border-orange-200/50 bg-gradient-to-r from-orange-50/80 to-yellow-50/80 backdrop-blur-lg shadow-xl">
-              <CardHeader className=" border-orange-200/50">
-                <CardTitle className="flex items-center space-x-2 text-orange-800">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>Peringatan Sistem</span>
-                  <Badge variant="destructive" className="bg-gradient-to-r from-red-500 to-orange-500">{dashboardData.alerts.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-2">
-                  {dashboardData.alerts.map((alert, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.1 * index }}
-                      className="p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-orange-200/70 text-orange-800 shadow-sm"
-                    >
-                      {alert}
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+     
+
       </div>
     </DashboardLayout>
   );

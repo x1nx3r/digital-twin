@@ -92,7 +92,7 @@ export function DashboardLayout({
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-sky-50">
       {/* Sidebar */}
       <motion.div
         className="fixed left-0 top-0 z-50 h-full bg-white/80 backdrop-blur-xl border-r border-blue-200/50 shadow-2xl"
@@ -323,7 +323,7 @@ export function DashboardLayout({
         animate={sidebarOpen ? "open" : "closed"}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <div className="h-full overflow-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="h-full overflow-auto bg-gradient-to-br from-blue-50 via-blue-100 to-sky-50">
           {children}
         </div>
       </motion.div>
